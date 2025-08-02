@@ -95,7 +95,7 @@ const formations: { [key: string]: Formation } = {
     defenders: 3,
     layout: [
       { position: "MF", count: 2, className: "flex justify-around w-full gap-x-4" },
-      { position: "CB", count: 3, className: "flex justify-around w-full gap-x-2" },
+      { position: "CB", count: 3, className: "flex justify-around w-full gap-x-4" },
     ],
   },
   "0-0-5": {
@@ -108,6 +108,46 @@ const formations: { [key: string]: Formation } = {
     ],
   },
 }
+
+const getTokensForPosition = (position: "ST" | "MF" | "CB"): Token[] => {
+  switch (position) {
+    case "ST":
+      return strikerTokens
+    case "MF":
+      return midfielderTokens
+    case "CB":
+      return defenderTokens
+    default:
+      return []
+  }
+}
+
+const TokenCard = ({ token, onClick, isDisabled }: { token: Token; onClick: () => void; isDisabled?: boolean }) => (
+  <div 
+    onClick={isDisabled ? undefined : onClick}
+    className={`bg-gray-800 rounded-lg p-3 transition-all duration-200 border ${
+      isDisabled 
+        ? 'cursor-not-allowed opacity-50 border-gray-600' 
+        : 'cursor-pointer hover:bg-gray-700 border-gray-700 hover:border-green-500'
+    }`}
+  >
+    <div className={`w-full h-16 rounded-md bg-gradient-to-r ${token.color} mb-3 flex items-center justify-center relative`}>
+      <span className="text-white font-bold text-lg">{token.symbol}</span>
+      {isDisabled && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 rounded-md flex items-center justify-center">
+          <span className="text-white text-xs font-bold">SELECTED</span>
+        </div>
+      )}
+    </div>
+    <div className="space-y-1">
+      <h3 className="text-white font-semibold text-sm truncate">{token.name}</h3>
+      <p className="text-gray-400 text-xs">{token.price}</p>
+      <p className={`text-xs font-medium ${token.change.startsWith('+') ? 'text-green-400' : token.change.startsWith('-') ? 'text-red-400' : 'text-gray-400'}`}>
+        {token.change}
+      </p>
+    </div>
+  </div>
+)
 
 const PlayerSlot = ({ position, slotId, onClick, selectedPlayer, onRemove }: { 
   position: "ST" | "MF" | "CB"; 
@@ -180,72 +220,33 @@ export default function FantasyFootballGame() {
   const [squadName, setSquadName] = useState("My Favourite Squad 1")
   const [squadNameError, setSquadNameError] = useState(false)
   const [selectedPlayers, setSelectedPlayers] = useState<SelectedPlayer[]>([])
+  const [showTokenModal, setShowTokenModal] = useState(false)
+  const [selectedPosition, setSelectedPosition] = useState<"ST" | "MF" | "CB" | null>(null)
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
 
   // Clear selected players when formation changes
   const handleFormationChange = (newFormation: string) => {
     setActiveFormation(newFormation)
-    setSelectedPlayers([]) // Clear all selected players when formation changes
+    // Only clear players that are not valid for the new formation
+    setSelectedPlayers(prevPlayers => {
+      const newFormationData = formations[newFormation]
+      return prevPlayers.filter(player => {
+        // Keep players that are still valid for the new formation
+        if (player.position === "ST" && newFormationData.strikers > 0) return true
+        if (player.position === "MF" && newFormationData.midfielders > 0) return true
+        if (player.position === "CB" && newFormationData.defenders > 0) return true
+        return false
+      })
+    })
   }
 
-  // Check for selected player from create-squad page
+  // Initialize formation from URL params if available (for direct links)
   useEffect(() => {
-    const selectedTokenId = searchParams.get("selectedTokenId")
-    const position = searchParams.get("position") as "ST" | "MF" | "CB" | null
-    const slotId = searchParams.get("slotId")
-    const selectedPlayersParam = searchParams.get("selectedPlayers")
-    
-    // First, update selected players from URL params if available
-    if (selectedPlayersParam) {
-      try {
-        const players = JSON.parse(decodeURIComponent(selectedPlayersParam))
-        setSelectedPlayers(players)
-        return // Exit early since we're using the complete players list
-      } catch (error) {
-        console.error("Error parsing selected players:", error)
-      }
-    }
-    
-    // Fallback to individual token selection (for backward compatibility)
-    if (selectedTokenId && position && slotId) {
-      const tokenId = parseInt(selectedTokenId)
-      let selectedToken: Token | null = null
-      
-      // Find the token based on position
-      if (position === "ST") {
-        selectedToken = strikerTokens.find(t => t.id === tokenId) || null
-      } else if (position === "MF") {
-        selectedToken = midfielderTokens.find(t => t.id === tokenId) || null
-      } else if (position === "CB") {
-        selectedToken = defenderTokens.find(t => t.id === tokenId) || null
-      }
-      
-      if (selectedToken) {
-        setSelectedPlayers(prevPlayers => {
-          // Check if this token is already selected in another slot
-          const isTokenAlreadySelected = prevPlayers.some(player => 
-            player.token.id === selectedToken!.id && player.slotId !== slotId
-          )
-          
-          if (isTokenAlreadySelected) {
-            // Token is already selected, don't add it
-            return prevPlayers
-          }
-          
-          // Remove any existing player in this slot
-          const updatedPlayers = prevPlayers.filter(player => player.slotId !== slotId)
-          
-          // Add new player
-          const newPlayer: SelectedPlayer = {
-            position,
-            token: selectedToken!,
-            slotId
-          }
-          
-          return [...updatedPlayers, newPlayer]
-        })
-      }
+    const formation = searchParams.get("formation")
+    if (formation && formations[formation]) {
+      setActiveFormation(formation)
     }
   }, [searchParams])
 
@@ -259,12 +260,44 @@ export default function FantasyFootballGame() {
   }
 
   const handlePlayerSlotClick = (position: "ST" | "MF" | "CB", slotId: string) => {
-    const selectedPlayersParam = encodeURIComponent(JSON.stringify(selectedPlayers))
-    router.push(`/create-squad?position=${position}&slotId=${slotId}&selectedPlayers=${selectedPlayersParam}`) // Navigate to the create squad page with position and slot info
+    setSelectedPosition(position)
+    setSelectedSlotId(slotId)
+    setShowTokenModal(true)
   }
 
   const removePlayer = (slotId: string) => {
     setSelectedPlayers(prevPlayers => prevPlayers.filter(player => player.slotId !== slotId))
+  }
+
+  const handleTokenSelect = (token: Token) => {
+    if (selectedPosition && selectedSlotId) {
+      // Check if this token is already selected in another slot
+      const isTokenAlreadySelected = selectedPlayers.some(player => 
+        player.token.id === token.id && player.slotId !== selectedSlotId
+      )
+      
+      if (isTokenAlreadySelected) {
+        // Token is already selected, don't proceed
+        return
+      }
+      
+      // Create updated players list
+      const updatedPlayers = selectedPlayers.filter(player => player.slotId !== selectedSlotId)
+      const newPlayer: SelectedPlayer = {
+        position: selectedPosition,
+        token,
+        slotId: selectedSlotId
+      }
+      const newSelectedPlayers = [...updatedPlayers, newPlayer]
+      
+      // Update the state immediately to reflect the selection
+      setSelectedPlayers(newSelectedPlayers)
+      
+      // Close the modal
+      setShowTokenModal(false)
+      setSelectedPosition(null)
+      setSelectedSlotId(null)
+    }
   }
 
   const isEnterTournamentButtonDisabled = squadName.trim() === ""
@@ -368,6 +401,49 @@ export default function FantasyFootballGame() {
           </div>
         </div>
       </div>
+
+      {/* Token Selection Modal */}
+      {showTokenModal && selectedPosition && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-lg w-full max-w-md max-h-[80vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <h2 className="text-xl font-bold text-white">
+                Select {selectedPosition === "ST" ? "Striker" : selectedPosition === "MF" ? "Midfielder" : "Defender"} Token
+              </h2>
+              <button 
+                onClick={() => {
+                  setShowTokenModal(false)
+                  setSelectedPosition(null)
+                  setSelectedSlotId(null)
+                }}
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Token Grid */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="grid grid-cols-2 gap-4">
+                {getTokensForPosition(selectedPosition).map((token) => {
+                  const isAlreadySelected = selectedPlayers.some(player => 
+                    player.token.id === token.id && player.slotId !== selectedSlotId
+                  )
+                  return (
+                    <TokenCard 
+                      key={token.id} 
+                      token={token} 
+                      onClick={() => handleTokenSelect(token)}
+                      isDisabled={isAlreadySelected}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </MobileFrame>
   )
 }
