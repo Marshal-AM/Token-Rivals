@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Share2, Trophy, Clock } from "lucide-react"
@@ -27,33 +28,45 @@ const Confetti = () => {
 export default function CompetitionPage() {
   const [matchEnded, setMatchEnded] = useState(false)
   const [showWinnerScreen, setShowWinnerScreen] = useState(false)
+  const [opponentJoined, setOpponentJoined] = useState(false)
+  const searchParams = useSearchParams()
+
+  const roomId = searchParams.get("roomId")
+  const userBet = searchParams.get("bet")
+  const isOpponent = searchParams.get("isOpponent") === "true"
 
   useEffect(() => {
-    // Simulate match ending after 5 seconds
-    const matchEndTimer = setTimeout(() => {
-      setMatchEnded(true)
-      // Show winner screen 5 seconds after match ends (total 10s from start)
-      const winnerScreenTimer = setTimeout(() => {
-        setShowWinnerScreen(true)
+    // Start match immediately when opponent joins
+    if (isOpponent) {
+      setOpponentJoined(true)
+      // Simulate match ending after 5 seconds
+      const matchEndTimer = setTimeout(() => {
+        setMatchEnded(true)
+        // Show winner screen 5 seconds after match ends (total 10s from start)
+        const winnerScreenTimer = setTimeout(() => {
+          setShowWinnerScreen(true)
+        }, 5000)
+        return () => clearTimeout(winnerScreenTimer)
       }, 5000)
-      return () => clearTimeout(winnerScreenTimer)
-    }, 5000)
 
-    return () => clearTimeout(matchEndTimer)
-  }, [])
+      return () => clearTimeout(matchEndTimer)
+    }
+  }, [isOpponent])
 
   const user = {
-    name: "marshal.25sec",
+    name: isOpponent ? "opponent.123" : "marshal.25sec",
     avatar: "/placeholder.svg?height=40&width=40",
     score: matchEnded ? "-0.06%" : "-0.05%",
     isWinner: true,
+    bet: userBet,
   }
 
   const opponent = {
-    name: "xuser_snap",
+    name: isOpponent ? "marshal.25sec" : "opponent.123",
     avatar: "/placeholder.svg?height=40&width=40",
     score: matchEnded ? "-0.11%" : "0.05%",
     isLeading: !matchEnded,
+    bet: userBet === "LONG" ? "SHORT" : "LONG",
   }
 
   // Updated graph data to match the reference image
@@ -115,6 +128,9 @@ export default function CompetitionPage() {
               </div>
               <div>
                 <div className="text-white text-sm font-medium">{user.name}</div>
+                <div className={`text-xs font-bold ${user.bet === 'LONG' ? 'text-green-400' : 'text-red-400'}`}>
+                  {user.bet}
+                </div>
               </div>
             </div>
             
@@ -124,6 +140,9 @@ export default function CompetitionPage() {
                   <div className="bg-green-500 text-white text-xs px-2 py-1 rounded mb-1">Leading</div>
                 )}
                 <div className="text-white text-sm font-medium">{opponent.name}</div>
+                <div className={`text-xs font-bold ${opponent.bet === 'LONG' ? 'text-green-400' : 'text-red-400'}`}>
+                  {opponent.bet}
+                </div>
               </div>
               <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center">
                 <span className="text-white text-xs font-bold">X</span>

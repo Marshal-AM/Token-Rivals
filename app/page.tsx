@@ -12,19 +12,19 @@ const strikerTokens = [
   { id: 2, name: "Ethereum", symbol: "ETH", priceFeedId: "0xff6152fBEe7142801C93CaDf6BE5be676d7c6A0d25126d665480874634fd0ace", color: "from-blue-400 to-purple-500" },
   { id: 3, name: "Solana", symbol: "SOL", priceFeedId: "0xef0d147356BaD7903B93b8938D5a90db84E1FB83d0c6c7bc0f4cfac8c280b56d", color: "from-green-400 to-blue-500" },
   { id: 4, name: "Uniswap", symbol: "UNI", priceFeedId: "0x78d102B683898091b1c83925cDd73EE4619bD77D568bf00ba737b456ba171501", color: "from-pink-500 to-red-500" },
-  { id: 5, name: "Optimism", symbol: "OP", priceFeedId: "0x385f210A326A0f5ccc1fa44107203eee4F5EfF21cecfe711544d2d59165e9bdf", color: "from-red-400 to-orange-500" },
-  { id: 6, name: "Arbitrum", symbol: "ARB", priceFeedId: "0x3fa4243B35a76bc73347A000dE53DD4a72e61549ebab8a791e344b3b9c1adcf5", color: "from-blue-500 to-cyan-500" },
 ]
 
 const midfielderTokens = [
+  { id: 5, name: "Optimism", symbol: "OP", priceFeedId: "0x385f210A326A0f5ccc1fa44107203eee4F5EfF21cecfe711544d2d59165e9bdf", color: "from-red-400 to-orange-500" },
+  { id: 6, name: "Arbitrum", symbol: "ARB", priceFeedId: "0x3fa4243B35a76bc73347A000dE53DD4a72e61549ebab8a791e344b3b9c1adcf5", color: "from-blue-500 to-cyan-500" },
   { id: 7, name: "Cosmos", symbol: "ATOM", priceFeedId: "0xb00b5BEb14E59B2f3733E0bC838D4FbA8CbB1030439983d037e7222c4e612819", color: "from-blue-400 to-indigo-500" },
   { id: 8, name: "Aptos", symbol: "APT", priceFeedId: "0x03ae13A34F453016c0664a00e2c48B4c79f4EA918b37509f5372ae51f0af00d5", color: "from-purple-400 to-pink-500" },
-  { id: 9, name: "Sui", symbol: "SUI", priceFeedId: "0x23d720C6ABc011CfF4398546dF57c4D025CE6a1eaf77f804fc7f920a6dc65744", color: "from-green-400 to-teal-500" },
-  { id: 10, name: "Pyth Network", symbol: "PYTH", priceFeedId: "0x0bbf2E65a946e795E2D6E654Bd1B444C909F55b18a1e5df1c3922d06719579ff", color: "from-purple-500 to-indigo-600" },
-  { id: 11, name: "Hype", symbol: "HYPE", priceFeedId: "0x4279255f4141D6d23b9E9E65319Fb29a0Cf3A17fff20fbc530d2a603eb6cd98b", color: "from-pink-400 to-purple-600" },
 ]
 
 const defenderTokens = [
+  { id: 9, name: "Sui", symbol: "SUI", priceFeedId: "0x23d720C6ABc011CfF4398546dF57c4D025CE6a1eaf77f804fc7f920a6dc65744", color: "from-green-400 to-teal-500" },
+  { id: 10, name: "Pyth Network", symbol: "PYTH", priceFeedId: "0x0bbf2E65a946e795E2D6E654Bd1B444C909F55b18a1e5df1c3922d06719579ff", color: "from-purple-500 to-indigo-600" },
+  { id: 11, name: "Hype", symbol: "HYPE", priceFeedId: "0x4279255f4141D6d23b9E9E65319Fb29a0Cf3A17fff20fbc530d2a603eb6cd98b", color: "from-pink-400 to-purple-600" },
   { id: 12, name: "USD Coin", symbol: "USDC", priceFeedId: "0xeaa03AE63Bb1B796077f8e5951115826f4Afd4Be21ed0cfc2798d1f9a9e9c94a", color: "from-blue-400 to-cyan-500" },
   { id: 13, name: "Lido Staked ETH", symbol: "STETH", priceFeedId: "0x846a1b144e778cc93A9EDDF8c98aB7B3B419BEBFb5615b94a465f53bd40850b5", color: "from-green-400 to-emerald-500" },
 ]
@@ -227,7 +227,8 @@ export default function FantasyFootballGame() {
   }, [searchParams])
 
   const handleEnterTournament = () => {
-    router.push("/tournament-type") // Navigate to tournament type selection
+    const selectedPlayersParam = encodeURIComponent(JSON.stringify(selectedPlayers))
+    router.push(`/tournament-entry?selectedPlayers=${selectedPlayersParam}&formation=${activeFormation}`)
   }
 
   const handlePlayerSlotClick = (position: "ST" | "MF" | "CB", slotId: string) => {
