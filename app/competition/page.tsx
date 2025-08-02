@@ -34,6 +34,7 @@ export default function CompetitionPage() {
   const roomId = searchParams.get("roomId")
   const userBet = searchParams.get("bet")
   const isOpponent = searchParams.get("isOpponent") === "true"
+  const hostBet = searchParams.get("hostBet")
 
   useEffect(() => {
     // Start match immediately when opponent joins
@@ -53,12 +54,15 @@ export default function CompetitionPage() {
     }
   }, [isOpponent])
 
+  // Both players have the same bet (host's bet)
+  const sharedBet = userBet || hostBet
+
   const user = {
     name: isOpponent ? "opponent.123" : "marshal.25sec",
     avatar: "/placeholder.svg?height=40&width=40",
     score: matchEnded ? "-0.06%" : "-0.05%",
     isWinner: true,
-    bet: userBet,
+    bet: sharedBet,
   }
 
   const opponent = {
@@ -66,7 +70,7 @@ export default function CompetitionPage() {
     avatar: "/placeholder.svg?height=40&width=40",
     score: matchEnded ? "-0.11%" : "0.05%",
     isLeading: !matchEnded,
-    bet: userBet === "LONG" ? "SHORT" : "LONG",
+    bet: sharedBet, // Same bet as user
   }
 
   // Updated graph data to match the reference image

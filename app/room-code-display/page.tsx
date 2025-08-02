@@ -18,12 +18,12 @@ export default function RoomCodeDisplayPage() {
 
   // Check if opponent has joined (this would be handled by WebSocket in real app)
   useEffect(() => {
-    // Simulate opponent joining after 3 seconds for demo purposes
-    // In a real app, this would be triggered by WebSocket event
-    const timer = setTimeout(() => {
-      // Redirect host to competition page
-      router.push(`/competition?roomId=${roomId}&bet=${bet}&selectedPlayers=${selectedPlayersParam}&formation=${formation}&isHost=true`)
-    }, 3000)
+         // Simulate opponent joining after 3 seconds for demo purposes
+     // In a real app, this would be triggered by WebSocket event
+     const timer = setTimeout(() => {
+       // Redirect host to competition page
+       router.push(`/competition?roomId=${roomId}&bet=${bet}&selectedPlayers=${selectedPlayersParam}&formation=${formation}&isHost=true&hostBet=${bet}`)
+     }, 3000)
 
     return () => clearTimeout(timer)
   }, [roomId, bet, selectedPlayersParam, formation, router])

@@ -20,11 +20,8 @@ export default function BettingSelectionPage() {
       const selectedPlayersParam = searchParams.get("selectedPlayers")
       const formation = searchParams.get("formation")
       
-      // Generate a random room ID
-      const roomId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-      
-      // Navigate to room code display page
-      router.push(`/room-code-display?roomId=${roomId}&bet=${selectedBet}&selectedPlayers=${selectedPlayersParam}&formation=${formation}`)
+      // Navigate to new room creation page with WebSocket
+      router.push(`/room-creation?bet=${selectedBet}&selectedPlayers=${selectedPlayersParam}&formation=${formation}`)
     }
   }
 

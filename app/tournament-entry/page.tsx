@@ -21,8 +21,8 @@ export default function TournamentEntryPage() {
 
   const handleJoinRoom = () => {
     if (roomId.trim()) {
-      // Navigate directly to competition page as opponent
-      router.push(`/competition?roomId=${roomId.trim()}&selectedPlayers=${selectedPlayersParam}&formation=${formation}&isOpponent=true`)
+      // Navigate to room join page with the room code
+      router.push(`/room-join?selectedPlayers=${selectedPlayersParam}&formation=${formation}&roomCode=${roomId.trim()}`)
     }
   }
 
