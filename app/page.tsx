@@ -1,11 +1,66 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowLeft, Plus } from "lucide-react"
+import { ArrowLeft, Plus, X } from "lucide-react"
 import { MobileFrame } from "@/components/mobile-frame"
+
+// Crypto token data for different positions
+const strikerTokens = [
+  { id: 1, name: "Bitcoin", symbol: "BTC", price: "$43,250", change: "+2.5%", color: "from-yellow-400 to-orange-500" },
+  { id: 2, name: "Ethereum", symbol: "ETH", price: "$2,680", change: "+1.8%", color: "from-blue-400 to-purple-500" },
+  { id: 3, name: "Solana", symbol: "SOL", price: "$98.50", change: "+5.2%", color: "from-green-400 to-blue-500" },
+  { id: 4, name: "Cardano", symbol: "ADA", price: "$0.52", change: "+3.1%", color: "from-blue-500 to-indigo-600" },
+  { id: 5, name: "Polkadot", symbol: "DOT", price: "$7.20", change: "+4.7%", color: "from-pink-400 to-purple-600" },
+  { id: 6, name: "Chainlink", symbol: "LINK", price: "$15.80", change: "+2.9%", color: "from-blue-500 to-cyan-500" },
+  { id: 7, name: "Uniswap", symbol: "UNI", price: "$6.45", change: "+1.6%", color: "from-pink-500 to-red-500" },
+  { id: 8, name: "Aave", symbol: "AAVE", price: "$245.30", change: "+3.8%", color: "from-purple-500 to-indigo-600" },
+  { id: 9, name: "Synthetix", symbol: "SNX", price: "$3.20", change: "+2.1%", color: "from-cyan-400 to-blue-500" },
+  { id: 10, name: "Yearn Finance", symbol: "YFI", price: "$8,450", change: "+4.2%", color: "from-yellow-500 to-orange-600" },
+]
+
+const midfielderTokens = [
+  { id: 11, name: "Polygon", symbol: "MATIC", price: "$0.85", change: "+6.3%", color: "from-purple-400 to-pink-500" },
+  { id: 12, name: "Avalanche", symbol: "AVAX", price: "$32.40", change: "+3.9%", color: "from-red-400 to-orange-500" },
+  { id: 13, name: "Cosmos", symbol: "ATOM", price: "$9.80", change: "+2.7%", color: "from-blue-400 to-indigo-500" },
+  { id: 14, name: "Tezos", symbol: "XTZ", price: "$1.15", change: "+1.4%", color: "from-green-400 to-teal-500" },
+  { id: 15, name: "Algorand", symbol: "ALGO", price: "$0.18", change: "+5.1%", color: "from-gray-400 to-gray-600" },
+  { id: 16, name: "Stellar", symbol: "XLM", price: "$0.12", change: "+2.3%", color: "from-purple-400 to-violet-500" },
+  { id: 17, name: "VeChain", symbol: "VET", price: "$0.025", change: "+4.8%", color: "from-green-500 to-emerald-600" },
+  { id: 18, name: "IOTA", symbol: "MIOTA", price: "$0.28", change: "+1.9%", color: "from-blue-500 to-cyan-600" },
+  { id: 19, name: "NEO", symbol: "NEO", price: "$12.50", change: "+3.2%", color: "from-green-400 to-emerald-500" },
+  { id: 20, name: "Ontology", symbol: "ONT", price: "$0.35", change: "+2.6%", color: "from-purple-500 to-violet-600" },
+]
+
+const defenderTokens = [
+  { id: 21, name: "Tether", symbol: "USDT", price: "$1.00", change: "0.0%", color: "from-green-400 to-emerald-500" },
+  { id: 22, name: "USD Coin", symbol: "USDC", price: "$1.00", change: "0.0%", color: "from-blue-400 to-cyan-500" },
+  { id: 23, name: "Dai", symbol: "DAI", price: "$1.00", change: "0.0%", color: "from-yellow-400 to-orange-500" },
+  { id: 24, name: "Binance USD", symbol: "BUSD", price: "$1.00", change: "0.0%", color: "from-yellow-500 to-orange-600" },
+  { id: 25, name: "TrueUSD", symbol: "TUSD", price: "$1.00", change: "0.0%", color: "from-blue-500 to-indigo-600" },
+  { id: 26, name: "Pax Dollar", symbol: "USDP", price: "$1.00", change: "0.0%", color: "from-green-500 to-emerald-600" },
+  { id: 27, name: "Gemini Dollar", symbol: "GUSD", price: "$1.00", change: "0.0%", color: "from-purple-400 to-violet-500" },
+  { id: 28, name: "Frax", symbol: "FRAX", price: "$1.00", change: "0.0%", color: "from-gray-400 to-gray-600" },
+  { id: 29, name: "Liquity USD", symbol: "LUSD", price: "$1.00", change: "0.0%", color: "from-blue-400 to-indigo-500" },
+  { id: 30, name: "Fei USD", symbol: "FEI", price: "$1.00", change: "0.0%", color: "from-orange-400 to-red-500" },
+]
+
+type Token = {
+  id: number
+  name: string
+  symbol: string
+  price: string
+  change: string
+  color: string
+}
+
+type SelectedPlayer = {
+  position: "ST" | "MF" | "CB"
+  token: Token
+  slotId: string
+}
 
 type Formation = {
   strikers: number
@@ -54,7 +109,13 @@ const formations: { [key: string]: Formation } = {
   },
 }
 
-const PlayerSlot = ({ position, onClick }: { position: "ST" | "MF" | "CB"; onClick: () => void }) => {
+const PlayerSlot = ({ position, slotId, onClick, selectedPlayer, onRemove }: { 
+  position: "ST" | "MF" | "CB"; 
+  slotId: string; 
+  onClick: (position: "ST" | "MF" | "CB", slotId: string) => void;
+  selectedPlayer?: SelectedPlayer;
+  onRemove: (slotId: string) => void;
+}) => {
   let positionColorClass = ""
   switch (position) {
     case "ST":
@@ -68,12 +129,43 @@ const PlayerSlot = ({ position, onClick }: { position: "ST" | "MF" | "CB"; onCli
       break
   }
 
+  const getPositionColor = (position: "ST" | "MF" | "CB") => {
+    switch (position) {
+      case "ST":
+        return "bg-red-500"
+      case "MF":
+        return "bg-blue-500"
+      case "CB":
+        return "bg-green-500"
+      default:
+        return "bg-gray-500"
+    }
+  }
+
   return (
     <div className="relative flex flex-col items-center justify-center w-20 h-20 bg-player-slot-bg rounded-md p-2 text-white text-xs font-medium text-center flex-shrink-0 border border-gray-600 shadow-md transition-all duration-200 hover:scale-105 hover:shadow-lg">
-      <button onClick={onClick} className="flex flex-col items-center justify-center w-full h-full">
-        <Plus className="w-6 h-6 mb-1 text-green-400" />
-        <span>ADD TOKEN</span>
-      </button>
+      {selectedPlayer ? (
+        <div className="flex flex-col items-center justify-center w-full h-full">
+          <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${selectedPlayer.token.color} flex items-center justify-center mb-1`}>
+            <span className="text-white text-xs font-bold">{selectedPlayer.token.symbol}</span>
+          </div>
+          <span className="text-xs truncate w-full">{selectedPlayer.token.name}</span>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation()
+              onRemove(slotId)
+            }}
+            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+          >
+            <X className="w-3 h-3 text-white" />
+          </button>
+        </div>
+      ) : (
+        <button onClick={() => onClick(position, slotId)} className="flex flex-col items-center justify-center w-full h-full">
+          <Plus className="w-6 h-6 mb-1 text-green-400" />
+          <span>ADD TOKEN</span>
+        </button>
+      )}
       <div
         className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-4 rounded-sm flex items-center justify-center text-white text-[10px] font-bold ${positionColorClass} shadow-sm`}
       >
@@ -87,7 +179,75 @@ export default function FantasyFootballGame() {
   const [activeFormation, setActiveFormation] = useState("2-2-1")
   const [squadName, setSquadName] = useState("My Favourite Squad 1")
   const [squadNameError, setSquadNameError] = useState(false)
+  const [selectedPlayers, setSelectedPlayers] = useState<SelectedPlayer[]>([])
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Clear selected players when formation changes
+  const handleFormationChange = (newFormation: string) => {
+    setActiveFormation(newFormation)
+    setSelectedPlayers([]) // Clear all selected players when formation changes
+  }
+
+  // Check for selected player from create-squad page
+  useEffect(() => {
+    const selectedTokenId = searchParams.get("selectedTokenId")
+    const position = searchParams.get("position") as "ST" | "MF" | "CB" | null
+    const slotId = searchParams.get("slotId")
+    const selectedPlayersParam = searchParams.get("selectedPlayers")
+    
+    // First, update selected players from URL params if available
+    if (selectedPlayersParam) {
+      try {
+        const players = JSON.parse(decodeURIComponent(selectedPlayersParam))
+        setSelectedPlayers(players)
+        return // Exit early since we're using the complete players list
+      } catch (error) {
+        console.error("Error parsing selected players:", error)
+      }
+    }
+    
+    // Fallback to individual token selection (for backward compatibility)
+    if (selectedTokenId && position && slotId) {
+      const tokenId = parseInt(selectedTokenId)
+      let selectedToken: Token | null = null
+      
+      // Find the token based on position
+      if (position === "ST") {
+        selectedToken = strikerTokens.find(t => t.id === tokenId) || null
+      } else if (position === "MF") {
+        selectedToken = midfielderTokens.find(t => t.id === tokenId) || null
+      } else if (position === "CB") {
+        selectedToken = defenderTokens.find(t => t.id === tokenId) || null
+      }
+      
+      if (selectedToken) {
+        setSelectedPlayers(prevPlayers => {
+          // Check if this token is already selected in another slot
+          const isTokenAlreadySelected = prevPlayers.some(player => 
+            player.token.id === selectedToken!.id && player.slotId !== slotId
+          )
+          
+          if (isTokenAlreadySelected) {
+            // Token is already selected, don't add it
+            return prevPlayers
+          }
+          
+          // Remove any existing player in this slot
+          const updatedPlayers = prevPlayers.filter(player => player.slotId !== slotId)
+          
+          // Add new player
+          const newPlayer: SelectedPlayer = {
+            position,
+            token: selectedToken!,
+            slotId
+          }
+          
+          return [...updatedPlayers, newPlayer]
+        })
+      }
+    }
+  }, [searchParams])
 
   const handleEnterTournament = () => {
     if (squadName.trim() === "") {
@@ -98,8 +258,13 @@ export default function FantasyFootballGame() {
     }
   }
 
-  const handlePlayerSlotClick = () => {
-    router.push("/create-squad") // Navigate to the create squad page
+  const handlePlayerSlotClick = (position: "ST" | "MF" | "CB", slotId: string) => {
+    const selectedPlayersParam = encodeURIComponent(JSON.stringify(selectedPlayers))
+    router.push(`/create-squad?position=${position}&slotId=${slotId}&selectedPlayers=${selectedPlayersParam}`) // Navigate to the create squad page with position and slot info
+  }
+
+  const removePlayer = (slotId: string) => {
+    setSelectedPlayers(prevPlayers => prevPlayers.filter(player => player.slotId !== slotId))
   }
 
   const isEnterTournamentButtonDisabled = squadName.trim() === ""
@@ -115,7 +280,7 @@ export default function FantasyFootballGame() {
             <Button
               key={formationKey}
               variant="ghost"
-              onClick={() => setActiveFormation(formationKey)}
+              onClick={() => handleFormationChange(formationKey)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                 activeFormation === formationKey
                   ? "bg-gradient-to-r from-tab-active-green to-green-600 text-mobile-frame-dark shadow-lg"
@@ -139,13 +304,21 @@ export default function FantasyFootballGame() {
             {/* Player Slots */}
             {currentFormation.layout.map((row, rowIndex) => (
               <div key={rowIndex} className={`${row.className} flex-1 flex items-center`}>
-                {Array.from({ length: row.count }).map((_, playerIndex) => (
-                  <PlayerSlot
-                    key={`${row.position}-${playerIndex}`}
-                    position={row.position}
-                    onClick={handlePlayerSlotClick}
-                  />
-                ))}
+                {Array.from({ length: row.count }).map((_, playerIndex) => {
+                  // Create unique slot ID that includes formation info
+                  const slotId = `${activeFormation}-${row.position}-${playerIndex}`
+                  const selectedPlayer = selectedPlayers.find(p => p.slotId === slotId)
+                  return (
+                    <PlayerSlot
+                      key={slotId}
+                      position={row.position}
+                      slotId={slotId}
+                      onClick={handlePlayerSlotClick}
+                      selectedPlayer={selectedPlayer}
+                      onRemove={removePlayer}
+                    />
+                  )
+                })}
               </div>
             ))}
           </div>
