@@ -3,56 +3,37 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { ArrowLeft, Plus, X } from "lucide-react"
 import { MobileFrame } from "@/components/mobile-frame"
 
-// Crypto token data for different positions
+// Crypto token data for different positions with Stable Price Feed IDs
 const strikerTokens = [
-  { id: 1, name: "Bitcoin", symbol: "BTC", price: "$43,250", change: "+2.5%", color: "from-yellow-400 to-orange-500" },
-  { id: 2, name: "Ethereum", symbol: "ETH", price: "$2,680", change: "+1.8%", color: "from-blue-400 to-purple-500" },
-  { id: 3, name: "Solana", symbol: "SOL", price: "$98.50", change: "+5.2%", color: "from-green-400 to-blue-500" },
-  { id: 4, name: "Cardano", symbol: "ADA", price: "$0.52", change: "+3.1%", color: "from-blue-500 to-indigo-600" },
-  { id: 5, name: "Polkadot", symbol: "DOT", price: "$7.20", change: "+4.7%", color: "from-pink-400 to-purple-600" },
-  { id: 6, name: "Chainlink", symbol: "LINK", price: "$15.80", change: "+2.9%", color: "from-blue-500 to-cyan-500" },
-  { id: 7, name: "Uniswap", symbol: "UNI", price: "$6.45", change: "+1.6%", color: "from-pink-500 to-red-500" },
-  { id: 8, name: "Aave", symbol: "AAVE", price: "$245.30", change: "+3.8%", color: "from-purple-500 to-indigo-600" },
-  { id: 9, name: "Synthetix", symbol: "SNX", price: "$3.20", change: "+2.1%", color: "from-cyan-400 to-blue-500" },
-  { id: 10, name: "Yearn Finance", symbol: "YFI", price: "$8,450", change: "+4.2%", color: "from-yellow-500 to-orange-600" },
+  { id: 1, name: "Bitcoin", symbol: "BTC", priceFeedId: "0xe62d2Ef8EA160056a8766A30bA6f992EBebB96756b72dc658afedf0f4a415b43", color: "from-yellow-400 to-orange-500" },
+  { id: 2, name: "Ethereum", symbol: "ETH", priceFeedId: "0xff6152fBEe7142801C93CaDf6BE5be676d7c6A0d25126d665480874634fd0ace", color: "from-blue-400 to-purple-500" },
+  { id: 3, name: "Solana", symbol: "SOL", priceFeedId: "0xef0d147356BaD7903B93b8938D5a90db84E1FB83d0c6c7bc0f4cfac8c280b56d", color: "from-green-400 to-blue-500" },
+  { id: 4, name: "Uniswap", symbol: "UNI", priceFeedId: "0x78d102B683898091b1c83925cDd73EE4619bD77D568bf00ba737b456ba171501", color: "from-pink-500 to-red-500" },
+  { id: 5, name: "Optimism", symbol: "OP", priceFeedId: "0x385f210A326A0f5ccc1fa44107203eee4F5EfF21cecfe711544d2d59165e9bdf", color: "from-red-400 to-orange-500" },
+  { id: 6, name: "Arbitrum", symbol: "ARB", priceFeedId: "0x3fa4243B35a76bc73347A000dE53DD4a72e61549ebab8a791e344b3b9c1adcf5", color: "from-blue-500 to-cyan-500" },
 ]
 
 const midfielderTokens = [
-  { id: 11, name: "Polygon", symbol: "MATIC", price: "$0.85", change: "+6.3%", color: "from-purple-400 to-pink-500" },
-  { id: 12, name: "Avalanche", symbol: "AVAX", price: "$32.40", change: "+3.9%", color: "from-red-400 to-orange-500" },
-  { id: 13, name: "Cosmos", symbol: "ATOM", price: "$9.80", change: "+2.7%", color: "from-blue-400 to-indigo-500" },
-  { id: 14, name: "Tezos", symbol: "XTZ", price: "$1.15", change: "+1.4%", color: "from-green-400 to-teal-500" },
-  { id: 15, name: "Algorand", symbol: "ALGO", price: "$0.18", change: "+5.1%", color: "from-gray-400 to-gray-600" },
-  { id: 16, name: "Stellar", symbol: "XLM", price: "$0.12", change: "+2.3%", color: "from-purple-400 to-violet-500" },
-  { id: 17, name: "VeChain", symbol: "VET", price: "$0.025", change: "+4.8%", color: "from-green-500 to-emerald-600" },
-  { id: 18, name: "IOTA", symbol: "MIOTA", price: "$0.28", change: "+1.9%", color: "from-blue-500 to-cyan-600" },
-  { id: 19, name: "NEO", symbol: "NEO", price: "$12.50", change: "+3.2%", color: "from-green-400 to-emerald-500" },
-  { id: 20, name: "Ontology", symbol: "ONT", price: "$0.35", change: "+2.6%", color: "from-purple-500 to-violet-600" },
+  { id: 7, name: "Cosmos", symbol: "ATOM", priceFeedId: "0xb00b5BEb14E59B2f3733E0bC838D4FbA8CbB1030439983d037e7222c4e612819", color: "from-blue-400 to-indigo-500" },
+  { id: 8, name: "Aptos", symbol: "APT", priceFeedId: "0x03ae13A34F453016c0664a00e2c48B4c79f4EA918b37509f5372ae51f0af00d5", color: "from-purple-400 to-pink-500" },
+  { id: 9, name: "Sui", symbol: "SUI", priceFeedId: "0x23d720C6ABc011CfF4398546dF57c4D025CE6a1eaf77f804fc7f920a6dc65744", color: "from-green-400 to-teal-500" },
+  { id: 10, name: "Pyth Network", symbol: "PYTH", priceFeedId: "0x0bbf2E65a946e795E2D6E654Bd1B444C909F55b18a1e5df1c3922d06719579ff", color: "from-purple-500 to-indigo-600" },
+  { id: 11, name: "Hype", symbol: "HYPE", priceFeedId: "0x4279255f4141D6d23b9E9E65319Fb29a0Cf3A17fff20fbc530d2a603eb6cd98b", color: "from-pink-400 to-purple-600" },
 ]
 
 const defenderTokens = [
-  { id: 21, name: "Tether", symbol: "USDT", price: "$1.00", change: "0.0%", color: "from-green-400 to-emerald-500" },
-  { id: 22, name: "USD Coin", symbol: "USDC", price: "$1.00", change: "0.0%", color: "from-blue-400 to-cyan-500" },
-  { id: 23, name: "Dai", symbol: "DAI", price: "$1.00", change: "0.0%", color: "from-yellow-400 to-orange-500" },
-  { id: 24, name: "Binance USD", symbol: "BUSD", price: "$1.00", change: "0.0%", color: "from-yellow-500 to-orange-600" },
-  { id: 25, name: "TrueUSD", symbol: "TUSD", price: "$1.00", change: "0.0%", color: "from-blue-500 to-indigo-600" },
-  { id: 26, name: "Pax Dollar", symbol: "USDP", price: "$1.00", change: "0.0%", color: "from-green-500 to-emerald-600" },
-  { id: 27, name: "Gemini Dollar", symbol: "GUSD", price: "$1.00", change: "0.0%", color: "from-purple-400 to-violet-500" },
-  { id: 28, name: "Frax", symbol: "FRAX", price: "$1.00", change: "0.0%", color: "from-gray-400 to-gray-600" },
-  { id: 29, name: "Liquity USD", symbol: "LUSD", price: "$1.00", change: "0.0%", color: "from-blue-400 to-indigo-500" },
-  { id: 30, name: "Fei USD", symbol: "FEI", price: "$1.00", change: "0.0%", color: "from-orange-400 to-red-500" },
+  { id: 12, name: "USD Coin", symbol: "USDC", priceFeedId: "0xeaa03AE63Bb1B796077f8e5951115826f4Afd4Be21ed0cfc2798d1f9a9e9c94a", color: "from-blue-400 to-cyan-500" },
+  { id: 13, name: "Lido Staked ETH", symbol: "STETH", priceFeedId: "0x846a1b144e778cc93A9EDDF8c98aB7B3B419BEBFb5615b94a465f53bd40850b5", color: "from-green-400 to-emerald-500" },
 ]
 
 type Token = {
   id: number
   name: string
   symbol: string
-  price: string
-  change: string
+  priceFeedId: string
   color: string
 }
 
@@ -141,10 +122,7 @@ const TokenCard = ({ token, onClick, isDisabled }: { token: Token; onClick: () =
     </div>
     <div className="space-y-1">
       <h3 className="text-white font-semibold text-sm truncate">{token.name}</h3>
-      <p className="text-gray-400 text-xs">{token.price}</p>
-      <p className={`text-xs font-medium ${token.change.startsWith('+') ? 'text-green-400' : token.change.startsWith('-') ? 'text-red-400' : 'text-gray-400'}`}>
-        {token.change}
-      </p>
+      <p className="text-gray-400 text-xs font-mono">{token.priceFeedId.slice(0, 8)}...</p>
     </div>
   </div>
 )
@@ -217,8 +195,6 @@ const PlayerSlot = ({ position, slotId, onClick, selectedPlayer, onRemove }: {
 
 export default function FantasyFootballGame() {
   const [activeFormation, setActiveFormation] = useState("2-2-1")
-  const [squadName, setSquadName] = useState("My Favourite Squad 1")
-  const [squadNameError, setSquadNameError] = useState(false)
   const [selectedPlayers, setSelectedPlayers] = useState<SelectedPlayer[]>([])
   const [showTokenModal, setShowTokenModal] = useState(false)
   const [selectedPosition, setSelectedPosition] = useState<"ST" | "MF" | "CB" | null>(null)
@@ -251,12 +227,7 @@ export default function FantasyFootballGame() {
   }, [searchParams])
 
   const handleEnterTournament = () => {
-    if (squadName.trim() === "") {
-      setSquadNameError(true)
-    } else {
-      setSquadNameError(false)
-      router.push("/tournament-type") // Navigate to tournament type selection
-    }
+    router.push("/tournament-type") // Navigate to tournament type selection
   }
 
   const handlePlayerSlotClick = (position: "ST" | "MF" | "CB", slotId: string) => {
@@ -300,7 +271,7 @@ export default function FantasyFootballGame() {
     }
   }
 
-  const isEnterTournamentButtonDisabled = squadName.trim() === ""
+  const isEnterTournamentButtonDisabled = selectedPlayers.length === 0
 
   const currentFormation = formations[activeFormation]
 
@@ -357,28 +328,8 @@ export default function FantasyFootballGame() {
           </div>
         </div>
 
-        {/* Squad Naming and Action Buttons */}
-        <div className="p-4 bg-mobile-frame-dark space-y-4 border-t border-gray-800 shadow-inner">
-          <div>
-            <label htmlFor="squad-name" className="block text-white text-sm font-medium mb-1">
-              Name the squad
-            </label>
-            {squadNameError && (
-              <span className="text-error-red text-xs ml-2 animate-pulse">Squad name is required</span>
-            )}
-            <Input
-              id="squad-name"
-              value={squadName}
-              onChange={(e) => {
-                setSquadName(e.target.value)
-                if (e.target.value.trim() !== "") {
-                  setSquadNameError(false)
-                }
-              }}
-              className="w-full bg-gray-800 border border-gray-700 text-white placeholder:text-gray-500 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
-              placeholder="My Favourite Squad 1"
-            />
-          </div>
+        {/* Action Buttons */}
+        <div className="p-4 bg-mobile-frame-dark border-t border-gray-800 shadow-inner">
           <div className="flex justify-between gap-3">
             <Button
               variant="ghost"
@@ -396,7 +347,7 @@ export default function FantasyFootballGame() {
               onClick={handleEnterTournament}
               disabled={isEnterTournamentButtonDisabled}
             >
-              {isEnterTournamentButtonDisabled ? "Positions need to be filled" : "Enter Tournament"}
+              {isEnterTournamentButtonDisabled ? "Select players to continue" : "Enter Tournament"}
             </Button>
           </div>
         </div>
