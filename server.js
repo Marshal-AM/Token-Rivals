@@ -333,7 +333,7 @@ server.on('request', (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8001;
 server.listen(PORT, () => {
   log(`🎯 TokenRivals Room Server running on port ${PORT}`);
   log(`📊 Health check available at http://localhost:${PORT}/health`);

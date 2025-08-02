@@ -28,7 +28,7 @@ interface UseRoomWebSocketReturn {
   disconnect: () => void;
 }
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8001';
 
 export function useRoomWebSocket(): UseRoomWebSocketReturn {
   const [isConnected, setIsConnected] = useState(false);
