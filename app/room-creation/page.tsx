@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowLeft, Copy, Check, Users, Clock, AlertCircle } from "lucide-react"
+import { ArrowLeft, Copy, Check, Users, Clock, AlertCircle, Loader2 } from "lucide-react"
 import { MobileFrame } from "@/components/mobile-frame"
 import { useRoomWebSocket } from "@/hooks/use-room-websocket"
+import { useWallet } from "@/contexts/wallet-context"
 
 export default function RoomCreationPage() {
   const router = useRouter()
@@ -15,10 +16,14 @@ export default function RoomCreationPage() {
   const [copied, setCopied] = useState(false)
   const [showHandshakeModal, setShowHandshakeModal] = useState(false)
   const [guestData, setGuestData] = useState<any>(null)
+  const [isStaking, setIsStaking] = useState(false)
+  const [stakeComplete, setStakeComplete] = useState(false)
+  const [tournamentId, setTournamentId] = useState<number | null>(null)
 
   const selectedPlayersParam = searchParams.get("selectedPlayers")
   const formation = searchParams.get("formation")
   const bet = searchParams.get("bet")
+  const stake = searchParams.get("stake")
 
   const {
     isConnected,
@@ -32,20 +37,66 @@ export default function RoomCreationPage() {
     disconnect
   } = useRoomWebSocket()
 
+  const { 
+    address, 
+    isContractReady, 
+    createTournament, 
+    depositStake,
+    pendingStakes 
+  } = useWallet()
+
   // Parse selected players
   const selectedPlayers = selectedPlayersParam ? JSON.parse(decodeURIComponent(selectedPlayersParam)) : []
 
-  // Create room when component mounts
-  useEffect(() => {
-    if (isConnected && roomStatus === 'idle') {
-      console.log('Creating room with data:', { selectedPlayers, formation, bet })
-      createRoom({
-        selectedPlayers,
-        formation: formation || '2-2-1',
-        bet
-      })
+  // Handle tournament creation and staking
+  const handleCreateTournamentAndStake = async () => {
+    if (!address || !isContractReady || !stake) return
+
+    setIsStaking(true)
+    
+    try {
+      // First, create the tournament on-chain with a temporary guest address
+      // We'll update this when someone actually joins
+      const tempGuestAddress = "0x0000000000000000000000000000000000000000"
+      const result = await createTournament(address, tempGuestAddress)
+      
+      if (result.success && result.tournamentId) {
+        setTournamentId(result.tournamentId)
+        
+        // Then deposit the stake
+        const stakeResult = await depositStake(result.tournamentId, stake)
+        
+        if (stakeResult.success) {
+          setStakeComplete(true)
+          
+          // Now create the WebSocket room with the tournament ID
+          createRoom({
+            selectedPlayers,
+            formation: formation || '2-2-1',
+            bet,
+            stake: parseFloat(stake),
+            tournamentId: result.tournamentId
+          })
+        } else {
+          console.error('Failed to deposit stake')
+        }
+      } else {
+        console.error('Failed to create tournament')
+      }
+    } catch (error) {
+      console.error('Error in tournament creation:', error)
+    } finally {
+      setIsStaking(false)
     }
-  }, [isConnected, roomStatus, createRoom, selectedPlayers, formation, bet])
+  }
+
+  // Create room when component mounts and wallet is ready
+  useEffect(() => {
+    if (isConnected && roomStatus === 'idle' && isContractReady && address && !isStaking && !stakeComplete) {
+      console.log('Starting tournament creation process...')
+      handleCreateTournamentAndStake()
+    }
+  }, [isConnected, roomStatus, isContractReady, address])
 
   // Handle room status changes
   useEffect(() => {
@@ -67,6 +118,7 @@ export default function RoomCreationPage() {
         selectedPlayers: selectedPlayersParam || '',
         formation: formation || '',
         bet: bet || '',
+        stake: stake || '',
         isHost: 'true',
         hostBet: bet || ''
       })
@@ -107,15 +159,36 @@ export default function RoomCreationPage() {
     router.back()
   }
 
-  if (!isConnected) {
+  if (!isConnected || isStaking || !stakeComplete) {
     return (
       <MobileFrame>
         <div className="flex flex-col h-full bg-gray-900">
           <div className="flex-1 flex items-center justify-center p-4">
             <div className="text-center">
               <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <h2 className="text-xl font-bold text-white mb-2">Connecting to Server</h2>
-              <p className="text-gray-400">Please wait while we establish a connection...</p>
+              {!isConnected && (
+                <>
+                  <h2 className="text-xl font-bold text-white mb-2">Connecting to Server</h2>
+                  <p className="text-gray-400">Please wait while we establish a connection...</p>
+                </>
+              )}
+              {isStaking && (
+                <>
+                  <h2 className="text-xl font-bold text-white mb-2">Creating Tournament</h2>
+                  <p className="text-gray-400">
+                    {tournamentId ? `Depositing ${stake} XTZ stake...` : 'Creating tournament on blockchain...'}
+                  </p>
+                  {tournamentId && (
+                    <p className="text-blue-400 text-sm mt-2">Tournament ID: {tournamentId}</p>
+                  )}
+                </>
+              )}
+              {!stakeComplete && !isStaking && isConnected && (
+                <>
+                  <h2 className="text-xl font-bold text-white mb-2">Preparing Tournament</h2>
+                  <p className="text-gray-400">Setting up blockchain tournament...</p>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -195,14 +268,42 @@ export default function RoomCreationPage() {
             </Button>
           </div>
 
+          {/* Room Details */}
+          <div className="bg-gray-800 rounded-lg p-4 mb-6">
+            <h3 className="text-white font-semibold mb-3">Tournament Details:</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between text-gray-300">
+                <span>Tournament ID:</span>
+                <span className="font-semibold text-blue-400">{tournamentId}</span>
+              </div>
+              <div className="flex justify-between text-gray-300">
+                <span>Bet Type:</span>
+                <span className={`font-semibold ${bet === 'LONG' ? 'text-green-400' : 'text-red-400'}`}>
+                  {bet}
+                </span>
+              </div>
+              <div className="flex justify-between text-gray-300">
+                <span>Stake Required:</span>
+                <span className="font-semibold text-yellow-400">{stake} XTZ</span>
+              </div>
+              <div className="flex justify-between text-gray-300">
+                <span>Your Stake:</span>
+                <span className="font-semibold text-green-400">
+                  {stakeComplete ? '✅ Deposited' : '⏳ Pending'}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Instructions */}
           <div className="bg-gray-800 rounded-lg p-4 mb-6">
             <h3 className="text-white font-semibold mb-2">How to play:</h3>
             <ol className="text-gray-300 text-sm space-y-1">
               <li>1. Copy and share the room code with your opponent</li>
-              <li>2. Your opponent will enter this code to join</li>
-              <li>3. Once they join, you'll need to accept the connection</li>
-              <li>4. The player with the better performing squad wins!</li>
+              <li>2. Your opponent must stake {stake} XTZ and bet {bet} to join</li>
+              <li>3. Their stake will be verified on the blockchain</li>
+              <li>4. Once verified, accept the connection to start the tournament</li>
+              <li>5. Winner takes all stakes from the smart contract!</li>
             </ol>
           </div>
 

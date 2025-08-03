@@ -1,29 +1,55 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, TrendingUp, TrendingDown } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { ArrowLeft, TrendingUp, TrendingDown, DollarSign } from "lucide-react"
 import { MobileFrame } from "@/components/mobile-frame"
+import { WalletConnection } from "@/components/wallet-connection"
+import { useWallet } from "@/contexts/wallet-context"
 
 export default function BettingSelectionPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [selectedBet, setSelectedBet] = useState<"SHORT" | "LONG" | null>(null)
+  const [stakeAmount, setStakeAmount] = useState<string>("")
+  
+  const { isConnected, isContractReady, userBalance } = useWallet()
 
   const handleBetSelection = (bet: "SHORT" | "LONG") => {
     setSelectedBet(bet)
   }
 
   const handleCreateRoom = () => {
-    if (selectedBet) {
+    if (selectedBet && stakeAmount && parseFloat(stakeAmount) > 0) {
       const selectedPlayersParam = searchParams.get("selectedPlayers")
       const formation = searchParams.get("formation")
       
       // Navigate to new room creation page with WebSocket
-      router.push(`/room-creation?bet=${selectedBet}&selectedPlayers=${selectedPlayersParam}&formation=${formation}`)
+      router.push(`/room-creation?bet=${selectedBet}&stake=${stakeAmount}&selectedPlayers=${selectedPlayersParam}&formation=${formation}`)
     }
   }
+
+  const handleJoinRoom = () => {
+    if (selectedBet && stakeAmount && parseFloat(stakeAmount) > 0) {
+      const selectedPlayersParam = searchParams.get("selectedPlayers")
+      const formation = searchParams.get("formation")
+      
+      // Navigate to room join page with current settings
+      router.push(`/room-join?bet=${selectedBet}&stake=${stakeAmount}&selectedPlayers=${selectedPlayersParam}&formation=${formation}`)
+    }
+  }
+
+  const handleStakeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    // Only allow positive numbers with up to 4 decimal places (for ETH precision)
+    if (value === "" || /^\d*\.?\d{0,4}$/.test(value)) {
+      setStakeAmount(value)
+    }
+  }
+
+  const canProceed = isConnected && isContractReady && selectedBet && stakeAmount && parseFloat(stakeAmount) > 0 && parseFloat(stakeAmount) <= parseFloat(userBalance)
 
   return (
     <MobileFrame>
@@ -42,8 +68,49 @@ export default function BettingSelectionPage() {
         {/* Content */}
         <div className="flex-1 p-4 flex flex-col justify-center">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">Select Your Position</h2>
-            <p className="text-gray-400">Choose whether you want to bet on the price going up or down</p>
+            <h2 className="text-2xl font-bold text-white mb-2">Select Your Position & Stake</h2>
+            <p className="text-gray-400">Connect wallet and choose your betting direction with ETH stake</p>
+          </div>
+
+          {/* Wallet Connection */}
+          <div className="mb-6">
+            <WalletConnection requireConnection={true} showBalance={true} />
+          </div>
+
+          {/* Stake Amount Input */}
+          <div className="bg-gray-800 rounded-lg p-6 mb-6">
+            <div className="flex items-center gap-3 mb-3">
+              <DollarSign className="w-5 h-5 text-green-500" />
+              <h3 className="text-lg font-semibold text-white">Stake Amount</h3>
+            </div>
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Enter XTZ stake (e.g., 0.01)"
+                value={stakeAmount}
+                onChange={handleStakeChange}
+                disabled={!isConnected || !isContractReady}
+                className="text-lg bg-gray-700 border-gray-600 text-white placeholder-gray-400 pr-12"
+              />
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">
+                XTZ
+              </div>
+            </div>
+            <div className="flex justify-between items-center mt-2 text-sm">
+              <p className="text-gray-400">
+                This XTZ will be staked in the smart contract
+              </p>
+              {isConnected && (
+                <p className="text-gray-300">
+                  Balance: {parseFloat(userBalance).toFixed(4)} XTZ
+                </p>
+              )}
+            </div>
+            {stakeAmount && parseFloat(stakeAmount) > parseFloat(userBalance) && (
+              <p className="text-red-400 text-sm mt-1">
+                Insufficient balance
+              </p>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -103,18 +170,31 @@ export default function BettingSelectionPage() {
           </div>
         </div>
 
-        {/* Action Button */}
-        <div className="p-4 bg-gray-800 border-t border-gray-700">
+        {/* Action Buttons */}
+        <div className="p-4 bg-gray-800 border-t border-gray-700 space-y-3">
           <Button
             onClick={handleCreateRoom}
-            disabled={!selectedBet}
+            disabled={!canProceed}
             className={`w-full py-3 text-lg font-bold rounded-lg transition-all duration-300 ${
-              selectedBet 
+              canProceed
                 ? "bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700" 
                 : "bg-gray-600 cursor-not-allowed"
             }`}
           >
-                         Create Room
+            Create Room {stakeAmount && parseFloat(stakeAmount) > 0 ? `(${stakeAmount} XTZ)` : ''}
+          </Button>
+          
+          <Button
+            onClick={handleJoinRoom}
+            disabled={!canProceed}
+            variant="outline"
+            className={`w-full py-3 text-lg font-bold rounded-lg transition-all duration-300 ${
+              canProceed
+                ? "border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white" 
+                : "border-gray-600 text-gray-400 cursor-not-allowed"
+            }`}
+          >
+            Join Room {stakeAmount && parseFloat(stakeAmount) > 0 ? `(${stakeAmount} XTZ)` : ''}
           </Button>
         </div>
       </div>

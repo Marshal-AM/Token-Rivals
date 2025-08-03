@@ -4,6 +4,7 @@ interface RoomData {
   selectedPlayers: any[];
   formation: string;
   bet?: string;
+  stake?: number;
 }
 
 interface WebSocketMessage {
@@ -13,6 +14,15 @@ interface WebSocketMessage {
   guestData?: RoomData;
   error?: string;
   reason?: string;
+  requiredStake?: number;
+  betType?: string;
+}
+
+interface RoomInfo {
+  roomId: string;
+  requiredStake: number;
+  betType: string;
+  hostData: RoomData;
 }
 
 interface UseRoomWebSocketReturn {
@@ -20,7 +30,9 @@ interface UseRoomWebSocketReturn {
   roomId: string | null;
   roomStatus: 'idle' | 'waiting' | 'handshaking' | 'accepted' | 'tournament' | 'error';
   error: string | null;
+  roomInfo: RoomInfo | null;
   createRoom: (data: RoomData) => void;
+  getRoomInfo: (roomId: string) => void;
   joinRoom: (roomId: string, data: RoomData) => void;
   acceptHandshake: (roomId: string) => void;
   rejectHandshake: (roomId: string, reason?: string) => void;
@@ -35,6 +47,7 @@ export function useRoomWebSocket(): UseRoomWebSocketReturn {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [roomStatus, setRoomStatus] = useState<'idle' | 'waiting' | 'handshaking' | 'accepted' | 'tournament' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -111,6 +124,25 @@ export function useRoomWebSocket(): UseRoomWebSocketReturn {
         setRoomId(message.roomId || null);
         setRoomStatus('waiting');
         setError(null);
+        break;
+
+      case 'ROOM_INFO_SUCCESS':
+        log(`Room info received: ${message.roomId}`);
+        if (message.roomId && message.requiredStake !== undefined && message.betType && message.hostData) {
+          setRoomInfo({
+            roomId: message.roomId,
+            requiredStake: message.requiredStake,
+            betType: message.betType,
+            hostData: message.hostData
+          });
+        }
+        setError(null);
+        break;
+
+      case 'ROOM_INFO_FAILED':
+        log(`Room info failed: ${message.error}`, 'ERROR');
+        setError(message.error || 'Failed to get room info');
+        setRoomInfo(null);
         break;
 
       case 'ROOM_CREATION_FAILED':
@@ -199,6 +231,14 @@ export function useRoomWebSocket(): UseRoomWebSocketReturn {
     });
   }, [sendMessage, log]);
 
+  const getRoomInfo = useCallback((roomId: string) => {
+    log(`Getting room info for: ${roomId}`);
+    sendMessage({
+      type: 'GET_ROOM_INFO',
+      roomId
+    });
+  }, [sendMessage, log]);
+
   const joinRoom = useCallback((roomId: string, data: RoomData) => {
     log(`Joining room: ${roomId} with data: ${JSON.stringify(data)}`);
     sendMessage({
@@ -247,6 +287,7 @@ export function useRoomWebSocket(): UseRoomWebSocketReturn {
     setRoomId(null);
     setRoomStatus('idle');
     setError(null);
+    setRoomInfo(null);
   }, [log]);
 
   // Connect on mount
@@ -263,7 +304,9 @@ export function useRoomWebSocket(): UseRoomWebSocketReturn {
     roomId,
     roomStatus,
     error,
+    roomInfo,
     createRoom,
+    getRoomInfo,
     joinRoom,
     acceptHandshake,
     rejectHandshake,
