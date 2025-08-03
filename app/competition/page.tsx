@@ -27,10 +27,43 @@ export default function CompetitionPage() {
   // Parse selected players
   const selectedPlayers = selectedPlayersParam ? JSON.parse(decodeURIComponent(selectedPlayersParam)) : []
 
-  // For demo purposes, we'll use the same players for both host and guest
+  // For demo purposes, create different squads for host and guest
   // In a real app, you'd get the guest players from the WebSocket data
   const hostPlayers = selectedPlayers
-  const guestPlayers = selectedPlayers // This would be different in real app
+  
+  // Create a different squad for guest (for testing)
+  const guestPlayers = [
+    // Different striker
+    {
+      id: "guest-striker-1",
+      name: "Guest Striker 1",
+      position: "striker",
+      token: {
+        symbol: "ETH",
+        priceFeedId: "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace"
+      }
+    },
+    // Different midfielder
+    {
+      id: "guest-midfielder-1", 
+      name: "Guest Midfielder 1",
+      position: "midfielder",
+      token: {
+        symbol: "OP",
+        priceFeedId: "0x385f64d993f7b77d8182ed5003d97c60aa3361f3cecfe711544d2d59165e9bdf"
+      }
+    },
+    // Different defender
+    {
+      id: "guest-defender-1",
+      name: "Guest Defender 1", 
+      position: "defender",
+      token: {
+        symbol: "SUI",
+        priceFeedId: "0x23d7315113f5b1d3ba7a83604c44b94d79f4fd69af77f804fc7f920a6dc65744"
+      }
+    }
+  ]
 
   // Both players bet the same way - use the room bet
   const roomBet = (hostBet || bet) as 'LONG' | 'SHORT'
@@ -108,7 +141,7 @@ export default function CompetitionPage() {
           {progress && (
             <div className="text-center mb-4">
               <div className="text-2xl font-bold text-white">
-                ${progress.hostSquad.totalValue.toFixed(2)} : ${progress.guestSquad.totalValue.toFixed(2)}
+                {progress.hostSquad.percentageChange.toFixed(3)}% : {progress.guestSquad.percentageChange.toFixed(3)}%
               </div>
               <div className="flex items-center justify-center gap-2 mt-1">
                 <Clock className="w-3 h-3 text-gray-400" />
@@ -186,8 +219,7 @@ export default function CompetitionPage() {
           <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-20">
             <TournamentResult
               result={result}
-              hostBet={roomBet}
-              guestBet={roomBet}
+              roomBet={roomBet}
               onPlayAgain={handlePlayAgain}
               onBackToHome={handleBackToHome}
             />

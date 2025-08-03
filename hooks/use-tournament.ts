@@ -46,7 +46,13 @@ export function useTournament({
       // Fetch current prices
       const prices = await tournamentService.fetchCurrentPrices();
       
-      // Calculate current squad values
+      // Set initial prices on first update (T0)
+      if (initialHostValueRef.current === 0) {
+        tournamentService.setInitialPrices(prices);
+        log('Initial prices set for tournament');
+      }
+      
+      // Calculate current squad values and percentage changes
       const hostSquad = tournamentService.calculateSquadValue(hostPlayers, prices);
       const guestSquad = tournamentService.calculateSquadValue(guestPlayers, prices);
       
@@ -67,7 +73,7 @@ export function useTournament({
       setProgress(currentProgress);
       progressHistoryRef.current.push(currentProgress);
       
-      log(`Progress update - Host: $${hostSquad.totalValue.toFixed(2)}, Guest: $${guestSquad.totalValue.toFixed(2)}, Time: ${currentProgress.timeRemaining}ms`);
+      log(`Progress update - Host: ${hostSquad.percentageChange.toFixed(3)}%, Guest: ${guestSquad.percentageChange.toFixed(3)}%, Time: ${currentProgress.timeRemaining}ms`);
     } catch (error) {
       log(`Error updating progress: ${error}`, 'ERROR');
     }
@@ -79,15 +85,9 @@ export function useTournament({
       throw new Error('No progress data available for result calculation');
     }
 
-    const hostPercentageChange = tournamentService.calculatePercentageChange(
-      initialHostValueRef.current,
-      finalProgress.hostSquad.totalValue
-    );
-
-    const guestPercentageChange = tournamentService.calculatePercentageChange(
-      initialGuestValueRef.current,
-      finalProgress.guestSquad.totalValue
-    );
+    // Use the percentage changes calculated by the tournament service
+    const hostPercentageChange = finalProgress.hostSquad.percentageChange;
+    const guestPercentageChange = finalProgress.guestSquad.percentageChange;
 
     const result = tournamentService.determineWinner(
       roomBet,
@@ -99,7 +99,7 @@ export function useTournament({
     result.finalHostValue = finalProgress.hostSquad.totalValue;
     result.finalGuestValue = finalProgress.guestSquad.totalValue;
 
-    log(`Tournament complete - Host: ${hostPercentageChange.toFixed(2)}%, Guest: ${guestPercentageChange.toFixed(2)}%, Winner: ${result.winner}`);
+    log(`Tournament complete - Host: ${hostPercentageChange.toFixed(3)}%, Guest: ${guestPercentageChange.toFixed(3)}%, Winner: ${result.winner}`);
     
     return result;
   }, [roomBet, log]);

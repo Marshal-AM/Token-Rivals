@@ -5,16 +5,14 @@ import { Trophy, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface TournamentResultProps {
   result: TournamentResult;
-  hostBet: 'LONG' | 'SHORT';
-  guestBet: 'LONG' | 'SHORT';
+  roomBet: 'LONG' | 'SHORT'; // Both players bet the same way
   onPlayAgain: () => void;
   onBackToHome: () => void;
 }
 
 export function TournamentResult({ 
   result, 
-  hostBet, 
-  guestBet, 
+  roomBet, 
   onPlayAgain, 
   onBackToHome 
 }: TournamentResultProps) {
@@ -72,7 +70,7 @@ export function TournamentResult({
         {/* Host Score */}
         <div className="bg-gray-800 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-white font-semibold">Host ({hostBet})</h3>
+            <h3 className="text-white font-semibold">Host ({roomBet})</h3>
             <div className={`flex items-center space-x-2 ${getScoreColor(result.hostScore)}`}>
               {getScoreIcon(result.hostScore)}
               <span className="font-bold">{result.hostScore.toFixed(2)}</span>
@@ -80,14 +78,14 @@ export function TournamentResult({
           </div>
           <div className="text-sm text-gray-400 space-y-1">
             <div>Final Value: ${result.finalHostValue.toFixed(2)}</div>
-            <div>Change: {result.hostPercentageChange.toFixed(2)}%</div>
+            <div>Change: {result.hostPercentageChange.toFixed(3)}%</div>
           </div>
         </div>
 
         {/* Guest Score */}
         <div className="bg-gray-800 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-white font-semibold">Guest ({guestBet})</h3>
+            <h3 className="text-white font-semibold">Guest ({roomBet})</h3>
             <div className={`flex items-center space-x-2 ${getScoreColor(result.guestScore)}`}>
               {getScoreIcon(result.guestScore)}
               <span className="font-bold">{result.guestScore.toFixed(2)}</span>
@@ -95,7 +93,7 @@ export function TournamentResult({
           </div>
           <div className="text-sm text-gray-400 space-y-1">
             <div>Final Value: ${result.finalGuestValue.toFixed(2)}</div>
-            <div>Change: {result.guestPercentageChange.toFixed(2)}%</div>
+            <div>Change: {result.guestPercentageChange.toFixed(3)}%</div>
           </div>
         </div>
       </div>

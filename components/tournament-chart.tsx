@@ -36,7 +36,9 @@ export function TournamentChart({
   // Draw chart
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || progressHistoryRef.current.length === 0) return;
+    if (!canvas || progressHistoryRef.current.length === 0) {
+      return;
+    }
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -48,13 +50,13 @@ export function TournamentChart({
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
-    // Find min and max values for scaling
+    // Find min and max values for scaling (using percentage changes)
     let minValue = Infinity;
     let maxValue = -Infinity;
 
     progressHistoryRef.current.forEach(p => {
-      minValue = Math.min(minValue, p.hostSquad.totalValue, p.guestSquad.totalValue);
-      maxValue = Math.max(maxValue, p.hostSquad.totalValue, p.guestSquad.totalValue);
+      minValue = Math.min(minValue, p.hostSquad.percentageChange, p.guestSquad.percentageChange);
+      maxValue = Math.max(maxValue, p.hostSquad.percentageChange, p.guestSquad.percentageChange);
     });
 
     // Add some padding to the range
@@ -63,9 +65,9 @@ export function TournamentChart({
     minValue -= paddingValue;
     maxValue += paddingValue;
 
-    // Helper function to convert value to y coordinate
-    const valueToY = (value: number) => {
-      return height - padding - ((value - minValue) / (maxValue - minValue)) * (height - 2 * padding);
+    // Helper function to convert percentage change to y coordinate
+    const valueToY = (percentageChange: number) => {
+      return height - padding - ((percentageChange - minValue) / (maxValue - minValue)) * (height - 2 * padding);
     };
 
     // Helper function to convert time to x coordinate
@@ -110,7 +112,7 @@ export function TournamentChart({
 
       progressHistoryRef.current.forEach((p, index) => {
         const x = timeToX(p.timestamp);
-        const y = valueToY(p.hostSquad.totalValue);
+        const y = valueToY(p.hostSquad.percentageChange);
         
         if (index === 0) {
           ctx.moveTo(x, y);
@@ -125,7 +127,7 @@ export function TournamentChart({
       ctx.fillStyle = hostBet === 'LONG' ? '#10B981' : '#EF4444';
       progressHistoryRef.current.forEach(p => {
         const x = timeToX(p.timestamp);
-        const y = valueToY(p.hostSquad.totalValue);
+        const y = valueToY(p.hostSquad.percentageChange);
         ctx.beginPath();
         ctx.arc(x, y, 4, 0, 2 * Math.PI);
         ctx.fill();
@@ -140,7 +142,7 @@ export function TournamentChart({
 
       progressHistoryRef.current.forEach((p, index) => {
         const x = timeToX(p.timestamp);
-        const y = valueToY(p.guestSquad.totalValue);
+        const y = valueToY(p.guestSquad.percentageChange);
         
         if (index === 0) {
           ctx.moveTo(x, y);
@@ -155,7 +157,7 @@ export function TournamentChart({
       ctx.fillStyle = guestBet === 'LONG' ? '#3B82F6' : '#F59E0B';
       progressHistoryRef.current.forEach(p => {
         const x = timeToX(p.timestamp);
-        const y = valueToY(p.guestSquad.totalValue);
+        const y = valueToY(p.guestSquad.percentageChange);
         ctx.beginPath();
         ctx.arc(x, y, 4, 0, 2 * Math.PI);
         ctx.fill();
@@ -167,18 +169,18 @@ export function TournamentChart({
       ctx.font = '14px Arial';
       ctx.textAlign = 'left';
       
-      // Host value
+      // Host percentage change
       ctx.fillStyle = hostBet === 'LONG' ? '#10B981' : '#EF4444';
       ctx.fillText(
-        `Host (${hostBet}): $${progress.hostSquad.totalValue.toFixed(2)}`,
+        `Host (${hostBet}): ${progress.hostSquad.percentageChange.toFixed(3)}%`,
         10,
         25
       );
       
-      // Guest value
+      // Guest percentage change
       ctx.fillStyle = guestBet === 'LONG' ? '#3B82F6' : '#F59E0B';
       ctx.fillText(
-        `Guest (${guestBet}): $${progress.guestSquad.totalValue.toFixed(2)}`,
+        `Guest (${guestBet}): ${progress.guestSquad.percentageChange.toFixed(3)}%`,
         10,
         45
       );
