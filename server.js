@@ -40,6 +40,9 @@ wss.on('connection', (ws, req) => {
         case 'CREATE_ROOM':
           handleCreateRoom(ws, data);
           break;
+        case 'GET_ROOM_INFO':
+          handleGetRoomInfo(ws, data);
+          break;
         case 'JOIN_ROOM':
           handleJoinRoom(ws, data);
           break;
@@ -129,7 +132,9 @@ function handleCreateRoom(ws, data) {
     guest: null,
     hostData: data.hostData,
     status: 'waiting',
-    createdAt: new Date()
+    createdAt: new Date(),
+    requiredStake: data.hostData?.stake || 0,
+    betType: data.hostData?.bet || 'LONG'
   };
   
   rooms.set(roomId, room);
@@ -146,6 +151,43 @@ function handleCreateRoom(ws, data) {
   }));
   
   log(`📊 Active rooms: ${rooms.size}`);
+}
+
+function handleGetRoomInfo(ws, data) {
+  const roomId = data.roomId;
+  
+  log(`🔍 Client requesting room info for: ${roomId}`);
+  
+  const room = rooms.get(roomId);
+  
+  if (!room) {
+    log(`❌ Room not found: ${roomId}`);
+    ws.send(JSON.stringify({
+      type: 'ROOM_INFO_FAILED',
+      error: 'Room not found'
+    }));
+    return;
+  }
+  
+  if (room.guest) {
+    log(`❌ Room ${roomId} is full`);
+    ws.send(JSON.stringify({
+      type: 'ROOM_INFO_FAILED',
+      error: 'Room is full'
+    }));
+    return;
+  }
+  
+  // Send room information
+  ws.send(JSON.stringify({
+    type: 'ROOM_INFO_SUCCESS',
+    roomId: roomId,
+    requiredStake: room.requiredStake,
+    betType: room.betType,
+    hostData: room.hostData
+  }));
+  
+  log(`✅ Room info sent for: ${roomId} (Stake: $${room.requiredStake}, Bet: ${room.betType})`);
 }
 
 function handleJoinRoom(ws, data) {
@@ -170,6 +212,28 @@ function handleJoinRoom(ws, data) {
     ws.send(JSON.stringify({
       type: 'JOIN_ROOM_FAILED',
       error: 'Room is full'
+    }));
+    return;
+  }
+
+  // Validate stake amount
+  const guestStake = data.guestData?.stake || 0;
+  if (guestStake !== room.requiredStake) {
+    log(`❌ Stake mismatch - Required: ${room.requiredStake}, Provided: ${guestStake}`);
+    ws.send(JSON.stringify({
+      type: 'JOIN_ROOM_FAILED',
+      error: `Stake amount must be $${room.requiredStake}`
+    }));
+    return;
+  }
+
+  // Validate bet type
+  const guestBet = data.guestData?.bet;
+  if (guestBet !== room.betType) {
+    log(`❌ Bet type mismatch - Required: ${room.betType}, Provided: ${guestBet}`);
+    ws.send(JSON.stringify({
+      type: 'JOIN_ROOM_FAILED',
+      error: `This room requires ${room.betType} betting. Your bet will be automatically set to ${room.betType}.`
     }));
     return;
   }
