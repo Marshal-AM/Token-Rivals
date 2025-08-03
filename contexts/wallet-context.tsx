@@ -5,7 +5,7 @@ import { tournamentContract } from '@/lib/tournament-contract'
 
 // Import the wagmi configuration to initialize AppKit
 import '@/lib/wagmi'
-import { useAppKitAccount, useAppKitProvider } from '@reown/appkit/react'
+import { useAppKitAccount, useAppKitProvider, useDisconnect } from '@reown/appkit/react'
 
 interface WalletContextType {
   // Wallet connection state
@@ -40,6 +40,7 @@ interface WalletProviderProps {
 export function WalletProvider({ children }: WalletProviderProps) {
   const { address, isConnected: appKitConnected } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider('eip155')
+  const { disconnect } = useDisconnect()
   
   const [isConnecting, setIsConnecting] = useState(false)
   const [isContractReady, setIsContractReady] = useState(false)
@@ -98,6 +99,33 @@ export function WalletProvider({ children }: WalletProviderProps) {
     }
   }, [appKitConnected, address])
 
+  // Periodic balance refresh when connected
+  useEffect(() => {
+    if (appKitConnected && address && isContractReady) {
+      // Initial balance fetch
+      refreshBalance()
+      
+      // Set up periodic balance refresh every 10 seconds
+      const balanceInterval = setInterval(() => {
+        refreshBalance()
+      }, 10000)
+      
+      return () => clearInterval(balanceInterval)
+    }
+  }, [appKitConnected, address, isContractReady])
+
+  // Handle disconnection state properly
+  useEffect(() => {
+    if (!appKitConnected) {
+      // Clean up state when disconnected
+      setIsContractReady(false)
+      setUserBalance('0')
+      setNetworkInfo(null)
+      setPendingStakes(new Map())
+      tournamentContract.removeEventListeners()
+    }
+  }, [appKitConnected])
+
   const connectWallet = async (): Promise<boolean> => {
     setIsConnecting(true)
     try {
@@ -112,19 +140,31 @@ export function WalletProvider({ children }: WalletProviderProps) {
     }
   }
 
-  const disconnectWallet = () => {
-    // AppKit handles disconnection
-    tournamentContract.removeEventListeners()
-    setIsContractReady(false)
-    setUserBalance('0')
-    setNetworkInfo(null)
-    setPendingStakes(new Map())
+  const disconnectWallet = async () => {
+    try {
+      // Actually disconnect from AppKit
+      await disconnect()
+      
+      // Clean up local state
+      tournamentContract.removeEventListeners()
+      setIsContractReady(false)
+      setUserBalance('0')
+      setNetworkInfo(null)
+      setPendingStakes(new Map())
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error)
+    }
   }
 
   const refreshBalance = async () => {
     if (address && isContractReady) {
-      const balance = await tournamentContract.getUserBalance(address)
-      setUserBalance(balance)
+      try {
+        const balance = await tournamentContract.getUserBalance(address)
+        setUserBalance(balance)
+      } catch (error) {
+        console.error('Error fetching balance:', error)
+        setUserBalance('0')
+      }
     }
   }
 

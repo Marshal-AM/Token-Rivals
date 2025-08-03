@@ -278,7 +278,7 @@ export default function FantasyFootballGame() {
 
   return (
     <MobileFrame>
-      <div className="flex-1 flex flex-col bg-gray-900">
+      <div className="h-full flex flex-col bg-gray-900">
         {/* Formation Tabs */}
         <div className="flex justify-around p-2 bg-mobile-frame-dark border-b border-gray-800 shadow-inner">
           {Object.keys(formations).map((formationKey) => (
@@ -331,26 +331,17 @@ export default function FantasyFootballGame() {
 
         {/* Action Buttons */}
         <div className="p-4 bg-mobile-frame-dark border-t border-gray-800 shadow-inner">
-          <div className="flex justify-between gap-3">
-            <Button
-              variant="ghost"
-              className="flex-1 text-white hover:bg-gray-700 rounded-lg py-3 transition-all duration-200"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            <Button
-              className={`flex-1 py-3 text-lg font-bold rounded-lg shadow-lg transition-all duration-300 ease-in-out ${
-                isEnterTournamentButtonDisabled
-                  ? "bg-button-disabled cursor-not-allowed opacity-70"
-                  : "bg-gradient-to-r from-button-green to-green-600 hover:from-green-600 hover:to-button-green"
-              }`}
-              onClick={handleEnterTournament}
-              disabled={isEnterTournamentButtonDisabled}
-            >
-              {isEnterTournamentButtonDisabled ? "Select players to continue" : "Enter Tournament"}
-            </Button>
-          </div>
+          <Button
+            className={`w-full py-3 text-lg font-bold rounded-lg shadow-lg transition-all duration-300 ease-in-out ${
+              isEnterTournamentButtonDisabled
+                ? "bg-button-disabled cursor-not-allowed opacity-70"
+                : "bg-gradient-to-r from-button-green to-green-600 hover:from-green-600 hover:to-button-green"
+            }`}
+            onClick={handleEnterTournament}
+            disabled={isEnterTournamentButtonDisabled}
+          >
+            {isEnterTournamentButtonDisabled ? "Select players to continue" : "Enter Tournament"}
+          </Button>
         </div>
       </div>
 

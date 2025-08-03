@@ -53,29 +53,32 @@ export default function BettingSelectionPage() {
 
   return (
     <MobileFrame>
-      <div className="flex flex-col h-full bg-gray-900">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 bg-gray-800 border-b border-gray-700">
-          <h1 className="text-xl font-bold text-white">Choose Your Bet</h1>
-          <button 
-            onClick={() => router.back()}
-            className="text-gray-400 hover:text-white"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 p-4 flex flex-col justify-center">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">Select Your Position & Stake</h2>
-            <p className="text-gray-400">Connect wallet and choose your betting direction with ETH stake</p>
+      <div className="flex-1 overflow-y-auto bg-gray-900">
+        <div className="p-4">
+          {/* Header with back button */}
+          <div className="flex items-center mb-6">
+            <button 
+              onClick={() => router.back()}
+              className="text-gray-400 hover:text-white mr-4"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <div className="flex-1 text-center">
+              <h1 className="text-xl font-bold text-white">Choose Your Bet</h1>
+            </div>
+          </div>
+          
+          <div className="text-center mb-6">
+            <h2 className="text-lg font-semibold text-white mb-2">Select Your Position & Stake</h2>
+            <p className="text-gray-400">Connect wallet and choose your betting direction with XTZ stake</p>
           </div>
 
-          {/* Wallet Connection */}
-          <div className="mb-6">
-            <WalletConnection requireConnection={true} showBalance={true} />
-          </div>
+          {/* Wallet Connection - Only show if not connected */}
+          {!isConnected && (
+            <div className="mb-6">
+              <WalletConnection requireConnection={true} showBalance={false} />
+            </div>
+          )}
 
           {/* Stake Amount Input */}
           <div className="bg-gray-800 rounded-lg p-6 mb-6">
@@ -168,34 +171,34 @@ export default function BettingSelectionPage() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="p-4 bg-gray-800 border-t border-gray-700 space-y-3">
-          <Button
-            onClick={handleCreateRoom}
-            disabled={!canProceed}
-            className={`w-full py-3 text-lg font-bold rounded-lg transition-all duration-300 ${
-              canProceed
-                ? "bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700" 
-                : "bg-gray-600 cursor-not-allowed"
-            }`}
-          >
-            Create Room {stakeAmount && parseFloat(stakeAmount) > 0 ? `(${stakeAmount} XTZ)` : ''}
-          </Button>
           
-          <Button
-            onClick={handleJoinRoom}
-            disabled={!canProceed}
-            variant="outline"
-            className={`w-full py-3 text-lg font-bold rounded-lg transition-all duration-300 ${
-              canProceed
-                ? "border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white" 
-                : "border-gray-600 text-gray-400 cursor-not-allowed"
-            }`}
-          >
-            Join Room {stakeAmount && parseFloat(stakeAmount) > 0 ? `(${stakeAmount} XTZ)` : ''}
-          </Button>
+          {/* Action Buttons */}
+          <div className="space-y-3 mt-8">
+            <Button
+              onClick={handleCreateRoom}
+              disabled={!canProceed}
+              className={`w-full py-3 text-lg font-bold rounded-lg transition-all duration-300 ${
+                canProceed
+                  ? "bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700" 
+                  : "bg-gray-600 cursor-not-allowed"
+              }`}
+            >
+              Create Room {stakeAmount && parseFloat(stakeAmount) > 0 ? `(${stakeAmount} XTZ)` : ''}
+            </Button>
+            
+            <Button
+              onClick={handleJoinRoom}
+              disabled={!canProceed}
+              variant="outline"
+              className={`w-full py-3 text-lg font-bold rounded-lg transition-all duration-300 ${
+                canProceed
+                  ? "border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white" 
+                  : "border-gray-600 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              Join Room {stakeAmount && parseFloat(stakeAmount) > 0 ? `(${stakeAmount} XTZ)` : ''}
+            </Button>
+          </div>
         </div>
       </div>
     </MobileFrame>

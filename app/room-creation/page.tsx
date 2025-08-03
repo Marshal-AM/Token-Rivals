@@ -120,7 +120,8 @@ export default function RoomCreationPage() {
         bet: bet || '',
         stake: stake || '',
         isHost: 'true',
-        hostBet: bet || ''
+        hostBet: bet || '',
+        tournamentId: tournamentId?.toString() || ''
       })
       router.push(`/competition?${params.toString()}`)
     } else if (roomStatus === 'error') {
@@ -200,11 +201,8 @@ export default function RoomCreationPage() {
     return (
       <MobileFrame>
         <div className="flex flex-col h-full bg-gray-900">
-          <div className="flex items-center justify-between p-4 bg-gray-800 border-b border-gray-700">
-            <h1 className="text-xl font-bold text-white">Room Creation</h1>
-            <button onClick={handleBack} className="text-gray-400 hover:text-white">
-              <ArrowLeft className="w-6 h-6" />
-            </button>
+          <div className="p-4 text-center">
+            <h1 className="text-xl font-bold text-white">Room Creation Error</h1>
           </div>
           <div className="flex-1 flex items-center justify-center p-4">
             <Alert className="max-w-md">
@@ -221,17 +219,21 @@ export default function RoomCreationPage() {
 
   return (
     <MobileFrame>
-      <div className="flex flex-col h-full bg-gray-900">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 bg-gray-800 border-b border-gray-700">
-          <h1 className="text-xl font-bold text-white">Room Created</h1>
-          <button onClick={handleBack} className="text-gray-400 hover:text-white">
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 p-4 flex flex-col justify-center">
+      <div className="h-full overflow-y-auto bg-gray-900">
+        <div className="p-4">
+          {/* Header with back button */}
+          <div className="flex items-center mb-6">
+            <button 
+              onClick={handleBack}
+              className="text-gray-400 hover:text-white mr-4"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <div className="flex-1 text-center">
+              <h1 className="text-xl font-bold text-white">Room Created</h1>
+            </div>
+          </div>
+          
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="w-8 h-8 text-white" />

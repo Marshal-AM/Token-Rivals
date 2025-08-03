@@ -9,6 +9,7 @@ import { useTournament } from "@/hooks/use-tournament"
 import { TournamentChart } from "@/components/tournament-chart"
 import { TournamentResult } from "@/components/tournament-result"
 import { TournamentResult as TournamentResultType } from "@/lib/tournament-service"
+import { useWallet } from "@/contexts/wallet-context"
 
 
 
