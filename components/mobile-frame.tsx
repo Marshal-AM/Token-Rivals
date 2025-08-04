@@ -10,7 +10,7 @@ export function MobileFrame({ children }: MobileFrameProps) {
   return (
     <div className="relative h-screen w-screen overflow-hidden">
       <Image
-        src="/images/stadium-background.png"
+        src="/background.png"
         alt="Football Stadium Background"
         layout="fill"
         objectFit="cover"

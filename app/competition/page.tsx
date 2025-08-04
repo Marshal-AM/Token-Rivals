@@ -248,22 +248,6 @@ function CompetitionContent() {
         <div className="p-4 bg-gray-800 border-b border-gray-700">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center">
-                <span className="text-white text-xs font-bold">S</span>
-              </div>
-              <span className="text-white text-sm">0.00</span>
-              <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs">+</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-white text-sm">Menu</span>
-              <div className="w-6 h-6 bg-white rounded-full"></div>
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
               <span className="text-white text-sm font-medium">Live Tournament</span>
             </div>

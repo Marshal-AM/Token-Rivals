@@ -70,7 +70,7 @@ function WinnerAnnouncementContent() {
   const handleViewTransaction = () => {
     const txHash = finalWinnerTxHash
     if (txHash) {
-      const explorerUrl = `https://explorer.etherlink.com/tx/${txHash}`
+      const explorerUrl = `https://testnet.explorer.etherlink.com/tx/${txHash}`
       window.open(explorerUrl, '_blank')
     }
   }
@@ -118,13 +118,7 @@ function WinnerAnnouncementContent() {
       <div className="h-full overflow-y-auto bg-gray-900">
         <div className="p-4">
           {/* Header */}
-          <div className="flex items-center mb-6">
-            <button 
-              onClick={handleBackToHome}
-              className="text-gray-400 hover:text-white mr-4"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
+          <div className="flex items-center mb-6 relative">
             <div className="flex-1 text-center">
               <h1 className="text-xl font-bold text-white">Tournament Complete</h1>
             </div>
@@ -132,23 +126,19 @@ function WinnerAnnouncementContent() {
 
           {/* Winner Information */}
           <div className="bg-gradient-to-br from-yellow-500 to-orange-600 rounded-lg p-6 mb-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Trophy className="w-8 h-8 text-white" />
-              <h2 className="text-2xl font-bold text-white">Tournament Complete</h2>
-            </div>
             
             {hasWinnerInfo ? (
               <div className="text-white">
-                <p className="text-lg mb-2">🏆 Winner Address:</p>
+                <p className="text-lg mb-2 text-center font-bold">Winner Address</p>
                 <div className="bg-white/20 rounded p-3 mb-4">
                   <div className="text-center">
-                    <div className="text-lg font-mono">
+                    <div className="text-xs font-mono leading-relaxed break-all">
                       {finalWinnerAddress}
                     </div>
                   </div>
                 </div>
-                <p className="text-sm opacity-90">
-                  Prize Amount: {stakeAmount ? (parseFloat(stakeAmount) * 2).toFixed(4) : '0'} XTZ
+                <p className="text-center text-sm opacity-90">
+                  Prize Amount: <span className="font-bold">{stakeAmount ? (parseFloat(stakeAmount) * 2).toFixed(4) : '0'} XTZ</span> 
                 </p>
               </div>
             ) : (
@@ -169,16 +159,9 @@ function WinnerAnnouncementContent() {
                 <h3 className="text-lg font-semibold text-white">Winner Transaction</h3>
               </div>
               
-              <div className="mb-4">
-                <p className="text-gray-400 text-sm mb-2">Transaction Hash:</p>
-                <p className="font-mono text-sm text-white bg-gray-700 rounded p-2 break-all">
-                  {finalWinnerTxHash}
-                </p>
-              </div>
-              
               <Button
                 onClick={handleViewTransaction}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full bg-button-gray hover:bg-gray-600 text-white"
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View on Explorer
@@ -191,9 +174,9 @@ function WinnerAnnouncementContent() {
             <Button
               onClick={handleBackToHome}
               variant="outline"
-              className="w-full border-gray-600 text-gray-400 hover:bg-gray-700"
+              className="w-full bg-button-green hover:bg-green-600 text-white"
             >
-              🏠 Back to Home
+              Back to Home
             </Button>
           </div>
         </div>
