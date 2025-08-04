@@ -6,6 +6,8 @@ TokenRivals is a Web3 gaming platform that combines fantasy football mechanics w
 
 ## 🎮 Game Flow
 
+<img width="1920" height="1080" alt="Add a subheading (13)" src="https://github.com/user-attachments/assets/36a6c3ac-3128-474e-9aea-78c7cd3ed367" />
+
 ### 1. Squad Building Phase
 - **Token Selection**: Players choose from 13 different cryptocurrencies organized by position:
   - **Strikers (4 tokens)**: BTC, ETH, SOL, UNI 
@@ -39,8 +41,6 @@ TokenRivals is a Web3 gaming platform that combines fantasy football mechanics w
 - **Smart Contract Payout**: Winner receives both stakes from escrow contract
 - **Transaction Verification**: All transactions recorded on Etherlink blockchain
 - **Explorer Integration**: Direct links to Etherlink explorer for transparency
-
-<img width="1920" height="1080" alt="Add a subheading (13)" src="https://github.com/user-attachments/assets/36a6c3ac-3128-474e-9aea-78c7cd3ed367" />
 
 ## 🔗 Etherlink Smart Contract
 
