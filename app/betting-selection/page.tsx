@@ -193,19 +193,6 @@ function BettingSelectionContent() {
             >
               Create Room {stakeAmount && parseFloat(stakeAmount) > 0 ? `(${stakeAmount} XTZ)` : ''}
             </Button>
-            
-            <Button
-              onClick={handleJoinRoom}
-              disabled={!canProceed}
-              variant="outline"
-              className={`w-full py-3 text-lg font-bold rounded-lg transition-all duration-300 ${
-                canProceed
-                  ? "border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white" 
-                  : "border-gray-600 text-gray-400 cursor-not-allowed"
-              }`}
-            >
-              Join Room {stakeAmount && parseFloat(stakeAmount) > 0 ? `(${stakeAmount} XTZ)` : ''}
-            </Button>
           </div>
         </div>
       </div>

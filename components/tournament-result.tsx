@@ -79,7 +79,6 @@ export function TournamentResult({
             </div>
           </div>
           <div className="text-sm text-gray-400 space-y-1">
-            <div>Final Value: ${result.finalHostValue.toFixed(2)}</div>
             <div>Change: {result.hostPercentageChange.toFixed(3)}%</div>
           </div>
         </div>
@@ -94,7 +93,6 @@ export function TournamentResult({
             </div>
           </div>
           <div className="text-sm text-gray-400 space-y-1">
-            <div>Final Value: ${result.finalGuestValue.toFixed(2)}</div>
             <div>Change: {result.guestPercentageChange.toFixed(3)}%</div>
           </div>
         </div>
@@ -106,28 +104,15 @@ export function TournamentResult({
         <div className="text-sm text-gray-400 space-y-1">
           <div>• <span className="text-green-400">LONG</span>: Score = % increase in squad value</div>
           <div>• <span className="text-red-400">SHORT</span>: Score = -% decrease in squad value</div>
-          <div>• Higher score wins the tournament</div>
         </div>
       </div>
 
       {/* Action Buttons */}
       <div className="space-y-3">
-        <button
-          onClick={onPlayAgain}
-          className="w-full py-3 px-4 bg-button-green hover:bg-green-600 text-white font-bold rounded-lg transition-all duration-300"
-        >
-          Play Again
-        </button>
-        <button
-          onClick={onBackToHome}
-          className="w-full py-3 px-4 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg transition-all duration-300"
-        >
-          Back to Home
-        </button>
         {onDone && (
           <button
             onClick={onDone}
-            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all duration-300"
+            className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all duration-300"
           >
             Done
           </button>

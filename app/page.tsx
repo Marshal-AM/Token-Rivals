@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Plus, X } from "lucide-react"
 import { MobileFrame } from "@/components/mobile-frame"
+import Image from "next/image"
 
 // Crypto token data for different positions with Stable Price Feed IDs
 const strikerTokens = [
@@ -103,29 +104,57 @@ const getTokensForPosition = (position: "ST" | "MF" | "CB"): Token[] => {
   }
 }
 
-const TokenCard = ({ token, onClick, isDisabled }: { token: Token; onClick: () => void; isDisabled?: boolean }) => (
-  <div 
-    onClick={isDisabled ? undefined : onClick}
-    className={`bg-gray-800 rounded-lg p-3 transition-all duration-200 border ${
-      isDisabled 
-        ? 'cursor-not-allowed opacity-50 border-gray-600' 
-        : 'cursor-pointer hover:bg-gray-700 border-gray-700 hover:border-green-500'
-    }`}
-  >
-    <div className={`w-full h-16 rounded-md bg-gradient-to-r ${token.color} mb-3 flex items-center justify-center relative`}>
-      <span className="text-white font-bold text-lg">{token.symbol}</span>
-      {isDisabled && (
-        <div className="absolute inset-0 bg-black bg-opacity-50 rounded-md flex items-center justify-center">
-          <span className="text-white text-xs font-bold">SELECTED</span>
-        </div>
-      )}
+// Get the image filename based on token symbol
+const getImageSrc = (symbol: string) => {
+  const imageMap: { [key: string]: string } = {
+    'BTC': '/BTC.png',
+    'ETH': '/eth.png',
+    'SOL': '/SOL.png',
+    'UNI': '/UNI.png',
+    'OP': '/optimism.png',
+    'ARB': '/arb.png',
+    'ATOM': '/atom.png',
+    'APT': '/apt.png',
+    'SUI': '/sui.png',
+    'PYTH': '/PYTH.png',
+    'HYPE': '/HYPE.png',
+    'USDC': '/USDC.png',
+    'STETH': '/steth.png'
+  }
+  return imageMap[symbol] || `/${symbol}.png`
+}
+
+const TokenCard = ({ token, onClick, isDisabled }: { token: Token; onClick: () => void; isDisabled?: boolean }) => {
+  return (
+    <div 
+      onClick={isDisabled ? undefined : onClick}
+      className={`bg-gray-800 rounded-lg p-3 transition-all duration-200 border ${
+        isDisabled 
+          ? 'cursor-not-allowed opacity-50 border-gray-600' 
+          : 'cursor-pointer hover:bg-gray-700 border-gray-700 hover:border-green-500'
+      }`}
+    >
+      <div className="w-full h-25 rounded-md bg-gray-700 mb-3 flex items-center justify-center relative overflow-hidden">
+        <Image
+          src={getImageSrc(token.symbol)}
+          alt={token.name}
+          width={96}
+          height={96}
+          className="w-full h-full object-cover object-top"
+        />
+        {isDisabled && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 rounded-md flex items-center justify-center">
+            <span className="text-white text-xs font-bold">SELECTED</span>
+          </div>
+        )}
+      </div>
+      <div className="space-y-1">
+        <h3 className="text-white font-semibold text-sm truncate">{token.name}</h3>
+        <p className="text-gray-400 text-xs font-mono">{token.priceFeedId.slice(0, 8)}...</p>
+      </div>
     </div>
-    <div className="space-y-1">
-      <h3 className="text-white font-semibold text-sm truncate">{token.name}</h3>
-      <p className="text-gray-400 text-xs font-mono">{token.priceFeedId.slice(0, 8)}...</p>
-    </div>
-  </div>
-)
+  )
+}
 
 const PlayerSlot = ({ position, slotId, onClick, selectedPlayer, onRemove }: { 
   position: "ST" | "MF" | "CB"; 
@@ -164,8 +193,14 @@ const PlayerSlot = ({ position, slotId, onClick, selectedPlayer, onRemove }: {
     <div className="relative flex flex-col items-center justify-center w-20 h-20 bg-player-slot-bg rounded-md p-2 text-white text-xs font-medium text-center flex-shrink-0 border border-gray-600 shadow-md transition-all duration-200 hover:scale-105 hover:shadow-lg">
       {selectedPlayer ? (
         <div className="flex flex-col items-center justify-center w-full h-full">
-          <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${selectedPlayer.token.color} flex items-center justify-center mb-1`}>
-            <span className="text-white text-xs font-bold">{selectedPlayer.token.symbol}</span>
+          <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center mb-1 overflow-hidden">
+            <Image
+              src={getImageSrc(selectedPlayer.token.symbol)}
+              alt={selectedPlayer.token.name}
+              width={40}
+              height={40}
+              className="w-full h-full object-cover object-center rounded-full"
+            />
           </div>
           <span className="text-xs truncate w-full">{selectedPlayer.token.name}</span>
           <button 
