@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,7 +10,7 @@ import { MobileFrame } from "@/components/mobile-frame"
 import { useRoomWebSocket } from "@/hooks/use-room-websocket"
 import { useWallet } from "@/contexts/wallet-context"
 
-export default function RoomCreationPage() {
+function RoomCreationContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [copied, setCopied] = useState(false)
@@ -356,5 +356,30 @@ export default function RoomCreationPage() {
         </div>
       )}
     </MobileFrame>
+  )
+}
+
+// Loading component for Suspense fallback
+function RoomCreationLoading() {
+  return (
+    <MobileFrame>
+      <div className="flex flex-col h-full bg-gray-900">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <h2 className="text-xl font-bold text-white mb-2">Loading Room Creation</h2>
+            <p className="text-gray-400">Please wait...</p>
+          </div>
+        </div>
+      </div>
+    </MobileFrame>
+  )
+}
+
+export default function RoomCreationPage() {
+  return (
+    <Suspense fallback={<RoomCreationLoading />}>
+      <RoomCreationContent />
+    </Suspense>
   )
 } 
