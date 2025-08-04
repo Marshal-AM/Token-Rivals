@@ -1,5 +1,9 @@
 # 🚀 TokenRivals - Bet on Your Favorite Tokens being Bullish! (or Bearish 👀) 📈📉
 
+<p align="center">
+<img width="666" height="375" alt="white-Photoroom-removebg-preview" src="https://github.com/user-attachments/assets/b098bfe4-1e0f-4fe7-b3d3-f7f1c6945404" />
+</p>
+
 ## 🎮 Overview
 
 Build your dream crypto squad, challenge other traders, and watch your predictions play out in 60 seconds of pure adrenaline. Go LONG when you're bullish or SHORT when you're bearish - every match is a chance to prove your trading instincts! 🚀
