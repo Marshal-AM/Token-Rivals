@@ -40,6 +40,8 @@ TokenRivals is a Web3 gaming platform that combines fantasy football mechanics w
 - **Transaction Verification**: All transactions recorded on Etherlink blockchain
 - **Explorer Integration**: Direct links to Etherlink explorer for transparency
 
+<img width="1920" height="1080" alt="Add a subheading (13)" src="https://github.com/user-attachments/assets/36a6c3ac-3128-474e-9aea-78c7cd3ed367" />
+
 ## 🔗 Etherlink Smart Contract
 
 **Deployed Contract Address**: [`0x26D215752f68bc2254186F9f6FF068b8C4BdFd37`](https://testnet.explorer.etherlink.com/address/0x26D215752f68bc2254186F9f6FF068b8C4BdFd37?tab=index)
