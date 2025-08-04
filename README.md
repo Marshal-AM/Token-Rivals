@@ -6,7 +6,8 @@ TokenRivals is a Web3 gaming platform that combines fantasy football mechanics w
 
 ## 🎮 Game Flow
 
-<img width="1920" height="1080" alt="Add a subheading (13)" src="https://github.com/user-attachments/assets/36a6c3ac-3128-474e-9aea-78c7cd3ed367" />
+<img width="1920" height="1080" alt="Add a subheading (14)" src="https://github.com/user-attachments/assets/825d4483-0845-42c8-a345-122b967e66fb" />
+
 
 ### 1. Squad Building Phase
 - **Token Selection**: Players choose from 13 different cryptocurrencies organized by position:
