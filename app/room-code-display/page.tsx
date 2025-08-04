@@ -108,7 +108,7 @@ export default function RoomCodeDisplayPage() {
               <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
               <span className="text-sm">Waiting for opponent to join...</span>
             </div>
-            <p className="text-gray-500 text-xs">You'll be automatically redirected when they join</p>
+            <p className="text-gray-500 text-xs">You&apos;ll be automatically redirected when they join</p>
           </div>
         </div>
       </div>

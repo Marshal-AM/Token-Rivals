@@ -58,7 +58,7 @@ export function GameHeader() {
               onClick={handleDisconnect}
               variant="outline"
               size="sm"
-              className="p-2 h-8 w-8"
+              className="p-2 h-8 w-8 text-black"
             >
               <LogOut className="w-3 h-3" />
             </Button>

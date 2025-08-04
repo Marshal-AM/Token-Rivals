@@ -29,6 +29,7 @@ interface WalletContextType {
   depositStake: (tournamentId: number, amountInXtz: string) => Promise<{ success: boolean, txHash?: string }>
   checkUserDeposit: (tournamentId: number) => Promise<boolean>
   announceWinner: (tournamentId: number, winnerAddress: string) => Promise<{ success: boolean, txHash?: string }>
+  getTournament: (tournamentId: number) => Promise<any>
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
@@ -238,6 +239,14 @@ export function WalletProvider({ children }: WalletProviderProps) {
     return await tournamentContract.announceWinner(tournamentId, winnerAddress)
   }
 
+  const getTournament = async (tournamentId: number) => {
+    if (!isContractReady) {
+      return null
+    }
+    
+    return await tournamentContract.getTournament(tournamentId)
+  }
+
   const value: WalletContextType = {
     // Wallet connection state
     isConnected: appKitConnected,
@@ -259,7 +268,8 @@ export function WalletProvider({ children }: WalletProviderProps) {
     createTournament,
     depositStake,
     checkUserDeposit,
-    announceWinner
+    announceWinner,
+    getTournament
   }
 
   return (

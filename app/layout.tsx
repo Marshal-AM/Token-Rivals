@@ -3,6 +3,7 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 import { WalletProvider } from '@/contexts/wallet-context'
+import { WebSocketProvider } from '@/contexts/websocket-context'
 
 export const metadata: Metadata = {
   title: 'Token Rivals',
@@ -27,9 +28,11 @@ html {
         `}</style>
       </head>
       <body>
-        <WalletProvider>
-          {children}
-        </WalletProvider>
+        <WebSocketProvider>
+          <WalletProvider>
+            {children}
+          </WalletProvider>
+        </WebSocketProvider>
       </body>
     </html>
   )

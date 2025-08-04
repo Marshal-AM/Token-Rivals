@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Users, Check, AlertCircle, Loader2 } from "lucide-react"
 import { MobileFrame } from "@/components/mobile-frame"
 import { useRoomWebSocket } from "@/hooks/use-room-websocket"
+import { useWallet } from "@/contexts/wallet-context"
 
 export default function RoomJoinPage() {
   const router = useRouter()
@@ -15,14 +16,16 @@ export default function RoomJoinPage() {
   const [roomCode, setRoomCode] = useState("")
   const [isJoining, setIsJoining] = useState(false)
   const [showHandshakeModal, setShowHandshakeModal] = useState(false)
-  const [hostData, setHostData] = useState<any>(null)
+  const [localHostData, setLocalHostData] = useState<any>(null)
   const [showRoomInfo, setShowRoomInfo] = useState(false)
   const [userStakeAmount, setUserStakeAmount] = useState("")
+  const [isLoadingRoomInfo, setIsLoadingRoomInfo] = useState(false)
 
   const selectedPlayersParam = searchParams.get("selectedPlayers")
   const formation = searchParams.get("formation")
   const bet = searchParams.get("bet")
   const stake = searchParams.get("stake")
+  const tournamentId = searchParams.get("tournamentId")
   const roomCodeParam = searchParams.get("roomCode")
 
   const {
@@ -31,11 +34,15 @@ export default function RoomJoinPage() {
     roomStatus,
     error,
     roomInfo,
+    hostData,
+    guestData,
     getRoomInfo,
     joinRoom,
     setPlayerReady,
     disconnect
   } = useRoomWebSocket()
+
+  const { address } = useWallet()
 
   // Parse selected players
   const selectedPlayers = selectedPlayersParam ? JSON.parse(decodeURIComponent(selectedPlayersParam)) : []
@@ -50,18 +57,35 @@ export default function RoomJoinPage() {
     }
   }, [roomCodeParam, stake])
 
+  // Show room info when it's successfully loaded
+  useEffect(() => {
+    if (roomInfo) {
+      setShowRoomInfo(true)
+      setIsLoadingRoomInfo(false)
+      // Auto-fill the stake amount to match the required stake
+      setUserStakeAmount(roomInfo.requiredStake.toString())
+    } else {
+      // Reset showRoomInfo if roomInfo is cleared (e.g., due to error)
+      setShowRoomInfo(false)
+    }
+  }, [roomInfo])
+
+  // Reset room info display on error
+  useEffect(() => {
+    if (error) {
+      console.log('Room info error:', error)
+      setShowRoomInfo(false)
+      setIsLoadingRoomInfo(false)
+    }
+  }, [error])
+
   // Handle room status changes
   useEffect(() => {
     if (roomStatus === 'handshaking') {
       console.log('Joined room, waiting for host to accept handshake')
     } else if (roomStatus === 'accepted') {
-      console.log('Handshake accepted, setting player ready')
-      if (roomId) {
-        setPlayerReady(roomId)
-      }
-    } else if (roomStatus === 'tournament') {
-      console.log('Tournament starting, redirecting to competition')
-      // Redirect to competition page
+      console.log('Handshake accepted, both users connected - redirecting to tournament waiting')
+      // Redirect to tournament waiting page where tournament will be created and both users will stake
       const params = new URLSearchParams({
         roomId: roomId || '',
         selectedPlayers: selectedPlayersParam || '',
@@ -69,22 +93,24 @@ export default function RoomJoinPage() {
         bet: bet || '',
         stake: userStakeAmount || '',
         isHost: 'false',
-        hostBet: hostData?.bet || ''
+        hostAddress: hostData?.hostAddress || '', // Host address from room info
+        guestAddress: address || '', // Current user is guest
+        tournamentId: tournamentId || ''
       })
-      router.push(`/competition?${params.toString()}`)
+      router.push(`/tournament-waiting?${params.toString()}`)
     } else if (roomStatus === 'error') {
       console.error('Room error:', error)
       setIsJoining(false)
     }
-  }, [roomStatus, roomId, error, setPlayerReady, router, selectedPlayersParam, formation, bet, hostData])
+  }, [roomStatus, roomId, error, setPlayerReady, router, selectedPlayersParam, formation, bet, hostData, tournamentId, userStakeAmount, address])
 
   const handleGetRoomInfo = () => {
     if (!roomCode.trim()) {
       return
     }
     
+    setIsLoadingRoomInfo(true)
     getRoomInfo(roomCode.toUpperCase())
-    setShowRoomInfo(true)
   }
 
   const handleJoinRoom = () => {
@@ -93,13 +119,14 @@ export default function RoomJoinPage() {
     }
 
     setIsJoining(true)
-    console.log('Joining room:', roomCode)
     
     joinRoom(roomCode.toUpperCase(), {
       selectedPlayers,
       formation: formation || '2-2-1',
       bet: roomInfo.betType,
-      stake: roomInfo.requiredStake
+      stake: roomInfo.requiredStake,
+      hostAddress: address || '', // Use current address as guest address
+      tournamentId: tournamentId || ''
     })
   }
 
@@ -185,11 +212,20 @@ export default function RoomJoinPage() {
             {!showRoomInfo ? (
               <Button
                 onClick={handleGetRoomInfo}
-                disabled={!roomCode.trim()}
+                disabled={!roomCode.trim() || isLoadingRoomInfo}
                 className="w-full py-3 text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg transition-all duration-300"
               >
-                <Users className="w-5 h-5 mr-2" />
-                Get Room Info
+                {isLoadingRoomInfo ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Loading Room Info...
+                  </>
+                ) : (
+                  <>
+                    <Users className="w-5 h-5 mr-2" />
+                    Get Room Info
+                  </>
+                )}
               </Button>
             ) : (
               <Button
@@ -212,6 +248,17 @@ export default function RoomJoinPage() {
             )}
           </div>
 
+          {/* Error Display */}
+          {error && (
+            <div className="bg-red-900 border border-red-500 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-red-400" />
+                <span className="text-red-400 font-semibold">Error</span>
+              </div>
+              <p className="text-red-300 mt-2">{error}</p>
+            </div>
+          )}
+
           {/* Room Info Display */}
           {showRoomInfo && roomInfo && (
             <div className="bg-gray-800 rounded-lg p-6 mb-6">
@@ -220,7 +267,7 @@ export default function RoomJoinPage() {
                 <div className="flex justify-between text-gray-300">
                   <span>Bet Type:</span>
                   <span className={`font-semibold ${roomInfo.betType === 'LONG' ? 'text-green-400' : 'text-red-400'}`}>
-                    {roomInfo.betType}
+                    {roomInfo.betType || 'NOT SET'}
                   </span>
                 </div>
                 <div className="flex justify-between text-gray-300">
@@ -266,14 +313,14 @@ export default function RoomJoinPage() {
                 <>
                   <li>1. Ask your opponent for their room code</li>
                   <li>2. Enter the 8-character room code above</li>
-                  <li>3. Click "Get Room Info" to see requirements</li>
+                  <li>3. Click &quot;Get Room Info&quot; to see requirements</li>
                   <li>4. Match the stake amount and betting type to join</li>
                 </>
               ) : (
                 <>
                   <li>1. Your bet type is automatically set to match the room</li>
                   <li>2. Enter the exact stake amount required</li>
-                  <li>3. Click "Join Room" to request entry</li>
+                  <li>3. Click &quot;Join Room&quot; to request entry</li>
                   <li>4. Wait for host approval to start the tournament</li>
                 </>
               )}

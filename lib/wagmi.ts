@@ -33,7 +33,7 @@ const etherlink = defineChain({
   },
   rpcUrls: {
     default: {
-      http: [process.env.NEXT_PUBLIC_RPC_URL || 'https://node.ghostnet.etherlink.com'],
+      http: [process.env.NEXT_PUBLIC_RPC_URL || 'https://128123.rpc.thirdweb.com'],
     },
   },
   blockExplorers: {

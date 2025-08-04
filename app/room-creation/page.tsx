@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,21 +15,24 @@ export default function RoomCreationPage() {
   const searchParams = useSearchParams()
   const [copied, setCopied] = useState(false)
   const [showHandshakeModal, setShowHandshakeModal] = useState(false)
-  const [guestData, setGuestData] = useState<any>(null)
+  const [localGuestData, setLocalGuestData] = useState<any>(null)
   const [isStaking, setIsStaking] = useState(false)
   const [stakeComplete, setStakeComplete] = useState(false)
-  const [tournamentId, setTournamentId] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const selectedPlayersParam = searchParams.get("selectedPlayers")
   const formation = searchParams.get("formation")
   const bet = searchParams.get("bet")
   const stake = searchParams.get("stake")
+  const tournamentId = searchParams.get("tournamentId")
 
   const {
     isConnected,
     roomId,
     roomStatus,
-    error,
+    error: roomError,
+    hostData,
+    guestData,
     createRoom,
     acceptHandshake,
     rejectHandshake,
@@ -45,50 +48,36 @@ export default function RoomCreationPage() {
     pendingStakes 
   } = useWallet()
 
-  // Parse selected players
-  const selectedPlayers = selectedPlayersParam ? JSON.parse(decodeURIComponent(selectedPlayersParam)) : []
-
   // Handle tournament creation and staking
-  const handleCreateTournamentAndStake = async () => {
+  const handleCreateTournamentAndStake = useCallback(async () => {
     if (!address || !isContractReady || !stake) return
+
+    // Parse selected players inside callback
+    const selectedPlayers = selectedPlayersParam ? JSON.parse(decodeURIComponent(selectedPlayersParam)) : []
 
     setIsStaking(true)
     
     try {
-      // First, create the tournament on-chain with a temporary guest address
-      // We'll update this when someone actually joins
-      const tempGuestAddress = "0x0000000000000000000000000000000000000000"
-      const result = await createTournament(address, tempGuestAddress)
+      console.log('Creating WebSocket room for off-chain match - NO blockchain calls')
       
-      if (result.success && result.tournamentId) {
-        setTournamentId(result.tournamentId)
-        
-        // Then deposit the stake
-        const stakeResult = await depositStake(result.tournamentId, stake)
-        
-        if (stakeResult.success) {
-          setStakeComplete(true)
-          
-          // Now create the WebSocket room with the tournament ID
-          createRoom({
-            selectedPlayers,
-            formation: formation || '2-2-1',
-            bet,
-            stake: parseFloat(stake),
-            tournamentId: result.tournamentId
-          })
-        } else {
-          console.error('Failed to deposit stake')
-        }
-      } else {
-        console.error('Failed to create tournament')
-      }
+      // Create the WebSocket room - blockchain tournament will be created AFTER match ends
+      createRoom({
+        selectedPlayers,
+        formation: formation || '2-2-1',
+        bet: bet || 'LONG',
+        stake: parseFloat(stake),
+        hostAddress: address,
+        tournamentId: tournamentId || ''
+      })
+      
+      setStakeComplete(true)
     } catch (error) {
-      console.error('Error in tournament creation:', error)
+      console.error('Error creating room:', error)
+      setError('Failed to create room. Please try again.')
     } finally {
       setIsStaking(false)
     }
-  }
+  }, [address, isContractReady, stake, selectedPlayersParam, formation, bet, createRoom, tournamentId])
 
   // Create room when component mounts and wallet is ready
   useEffect(() => {
@@ -96,7 +85,7 @@ export default function RoomCreationPage() {
       console.log('Starting tournament creation process...')
       handleCreateTournamentAndStake()
     }
-  }, [isConnected, roomStatus, isContractReady, address])
+  }, [isConnected, roomStatus, isContractReady, address, handleCreateTournamentAndStake, isStaking, stakeComplete])
 
   // Handle room status changes
   useEffect(() => {
@@ -106,13 +95,8 @@ export default function RoomCreationPage() {
       console.log('Guest joined, initiating handshake')
       setShowHandshakeModal(true)
     } else if (roomStatus === 'accepted') {
-      console.log('Handshake accepted, setting player ready')
-      if (roomId) {
-        setPlayerReady(roomId)
-      }
-    } else if (roomStatus === 'tournament') {
-      console.log('Tournament starting, redirecting to competition')
-      // Redirect to competition page
+      console.log('Handshake accepted, both users connected - redirecting to tournament waiting')
+      // Redirect to tournament waiting page where tournament will be created and both users will stake
       const params = new URLSearchParams({
         roomId: roomId || '',
         selectedPlayers: selectedPlayersParam || '',
@@ -120,14 +104,15 @@ export default function RoomCreationPage() {
         bet: bet || '',
         stake: stake || '',
         isHost: 'true',
-        hostBet: bet || '',
-        tournamentId: tournamentId?.toString() || ''
+        hostAddress: address || '',
+        guestAddress: guestData?.hostAddress || '', // Guest address from handshake
+        tournamentId: tournamentId || ''
       })
-      router.push(`/competition?${params.toString()}`)
+      router.push(`/tournament-waiting?${params.toString()}`)
     } else if (roomStatus === 'error') {
       console.error('Room error:', error)
     }
-  }, [roomStatus, roomId, error, setPlayerReady, router, selectedPlayersParam, formation, bet])
+  }, [roomStatus, roomId, error, setPlayerReady, router, selectedPlayersParam, formation, bet, stake, tournamentId, address, guestData])
 
   const handleCopyRoomCode = async () => {
     if (roomId) {
@@ -175,13 +160,10 @@ export default function RoomCreationPage() {
               )}
               {isStaking && (
                 <>
-                  <h2 className="text-xl font-bold text-white mb-2">Creating Tournament</h2>
+                  <h2 className="text-xl font-bold text-white mb-2">Creating Room</h2>
                   <p className="text-gray-400">
-                    {tournamentId ? `Depositing ${stake} XTZ stake...` : 'Creating tournament on blockchain...'}
+                    Setting up match room...
                   </p>
-                  {tournamentId && (
-                    <p className="text-blue-400 text-sm mt-2">Tournament ID: {tournamentId}</p>
-                  )}
                 </>
               )}
               {!stakeComplete && !isStaking && isConnected && (
@@ -272,11 +254,11 @@ export default function RoomCreationPage() {
 
           {/* Room Details */}
           <div className="bg-gray-800 rounded-lg p-4 mb-6">
-            <h3 className="text-white font-semibold mb-3">Tournament Details:</h3>
+            <h3 className="text-white font-semibold mb-3">Room Details:</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between text-gray-300">
-                <span>Tournament ID:</span>
-                <span className="font-semibold text-blue-400">{tournamentId}</span>
+                <span>Room Code:</span>
+                <span className="font-semibold text-blue-400">{roomId}</span>
               </div>
               <div className="flex justify-between text-gray-300">
                 <span>Bet Type:</span>

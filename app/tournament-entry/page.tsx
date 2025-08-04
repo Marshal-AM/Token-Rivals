@@ -144,7 +144,7 @@ export default function TournamentEntryPage() {
                   <ol className="text-gray-300 text-sm space-y-1">
                     <li>1. Ask the room creator for their room ID</li>
                     <li>2. Paste or type the room ID above</li>
-                    <li>3. Click "Join Room" to enter the match</li>
+                    <li>3. Click &quot;Join Room&quot; to enter the match</li>
                   </ol>
                 </div>
               </div>

@@ -10,23 +10,76 @@ import { TournamentChart } from "@/components/tournament-chart"
 import { TournamentResult } from "@/components/tournament-result"
 import { TournamentResult as TournamentResultType } from "@/lib/tournament-service"
 import { useWallet } from "@/contexts/wallet-context"
-
-
+import { useRoomWebSocket } from "@/hooks/use-room-websocket"
 
 export default function CompetitionPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [showResult, setShowResult] = useState(false)
+  const [isAnnouncingWinner, setIsAnnouncingWinner] = useState(false)
+  const [winnerAnnounced, setWinnerAnnounced] = useState(false)
 
   const roomId = searchParams.get("roomId")
   const selectedPlayersParam = searchParams.get("selectedPlayers")
   const formation = searchParams.get("formation")
   const bet = searchParams.get("bet")
+  const stake = searchParams.get("stake")
   const isHost = searchParams.get("isHost") === "true"
   const hostBet = searchParams.get("hostBet")
+  const tournamentId = searchParams.get("tournamentId")
+  const hostAddress = searchParams.get("hostAddress") || ""
+  const guestAddress = searchParams.get("guestAddress") || ""
+  
+  const { address } = useWallet()
+  const { announceWinner, roomStatus, roomInfo, getRoomInfo, winnerInfo, isConnected } = useRoomWebSocket()
 
   // Parse selected players
   const selectedPlayers = selectedPlayersParam ? JSON.parse(decodeURIComponent(selectedPlayersParam)) : []
+
+  // Get bet type from WebSocket roomInfo or fallback to URL parameter
+  const displayBetType = roomInfo?.betType || bet || 'UNKNOWN'
+  
+  // Debug: Log bet type information
+  useEffect(() => {
+    console.log('🎯 [DEBUG] Competition bet type info:', {
+      roomInfoBetType: roomInfo?.betType,
+      urlBetType: bet,
+      displayBetType: displayBetType
+    })
+  }, [roomInfo?.betType, bet, displayBetType])
+
+  // Get room info if not available
+  useEffect(() => {
+    if (roomId && !roomInfo) {
+      console.log('🔍 Getting room info for competition page')
+      getRoomInfo(roomId)
+    }
+  }, [roomId, roomInfo, getRoomInfo])
+
+  // Debug: Log roomInfo changes
+  useEffect(() => {
+    console.log('🎯 [DEBUG] roomInfo changed in competition:', roomInfo)
+  }, [roomInfo])
+
+  // Ensure room info is fetched on page load for synchronization
+  useEffect(() => {
+    if (roomId && isConnected) {
+      console.log('🔍 Ensuring room info is available for competition')
+      getRoomInfo(roomId)
+    }
+  }, [roomId, isConnected, getRoomInfo])
+
+  // Fallback: Get room info periodically to ensure synchronization
+  useEffect(() => {
+    if (roomId && isConnected) {
+      const interval = setInterval(() => {
+        console.log('🔄 Periodic room info sync for competition')
+        getRoomInfo(roomId)
+      }, 5000) // Sync every 5 seconds
+      
+      return () => clearInterval(interval)
+    }
+  }, [roomId, isConnected, getRoomInfo])
 
   // For demo purposes, create different squads for host and guest
   // In a real app, you'd get the guest players from the WebSocket data
@@ -67,7 +120,77 @@ export default function CompetitionPage() {
   ]
 
   // Both players bet the same way - use the room bet
-  const roomBet = (hostBet || bet) as 'LONG' | 'SHORT'
+  const roomBet = displayBetType as 'LONG' | 'SHORT'
+
+  // Handle winner announcement via WebSocket
+  useEffect(() => {
+    if (roomStatus === 'winner_announced') {
+      console.log('Winner announced via WebSocket')
+      setWinnerAnnounced(true)
+      
+      // Store winner info in localStorage as fallback (only on client side)
+      if (winnerInfo && typeof window !== 'undefined') {
+        localStorage.setItem('winnerInfo', JSON.stringify(winnerInfo))
+        console.log('💾 Stored winner info in localStorage:', winnerInfo)
+      }
+    }
+  }, [roomStatus, winnerInfo])
+
+  // Debug: Log winner announcement status
+  useEffect(() => {
+    console.log('🎯 [DEBUG] Winner announcement status:', {
+      roomStatus,
+      winnerAnnounced,
+      showResult,
+      winnerInfo
+    })
+  }, [roomStatus, winnerAnnounced, showResult, winnerInfo])
+
+  // Debug: Log room info for synchronization
+  useEffect(() => {
+    console.log('🎯 [DEBUG] Room info for competition:', {
+      roomInfo,
+      displayBetType,
+      roomBet
+    })
+  }, [roomInfo, displayBetType, roomBet])
+
+  // Handle tournament completion with winner announcement
+  const handleTournamentComplete = async (result: TournamentResultType) => {
+    console.log('Tournament completed:', result)
+    setShowResult(true)
+    
+    // Announce winner via WebSocket
+    if (roomId && tournamentId) {
+      setIsAnnouncingWinner(true)
+      
+      try {
+        console.log('Match completed with results:', result)
+        console.log('Winner:', result.winner)
+        console.log('Tournament ID:', tournamentId)
+        console.log('Scores:', {
+          host: result.hostScore,
+          guest: result.guestScore,
+          hostPercentageChange: result.hostPercentageChange,
+          guestPercentageChange: result.guestPercentageChange
+        })
+        
+        // Determine winner address
+        const winnerAddress = result.winner === 'host' ? hostAddress : guestAddress
+        console.log('🎉 Announcing winner via WebSocket:', winnerAddress)
+        
+        // Announce winner via WebSocket (server will handle blockchain transaction)
+        announceWinner(roomId, winnerAddress)
+        
+      } catch (error) {
+        console.error('Error announcing winner:', error)
+      } finally {
+        setIsAnnouncingWinner(false)
+      }
+    } else {
+      console.warn('Missing room ID or tournament ID for winner announcement')
+    }
+  }
 
   // Tournament hook
   const {
@@ -82,10 +205,7 @@ export default function CompetitionPage() {
     guestPlayers,
     roomBet,
     duration: 60000, // 60 seconds
-    onComplete: (result: TournamentResultType) => {
-      console.log('Tournament completed:', result)
-      setShowResult(true)
-    }
+    onComplete: handleTournamentComplete
   })
 
   // Start tournament when component mounts
@@ -102,6 +222,23 @@ export default function CompetitionPage() {
 
   const handleBackToHome = () => {
     router.push('/')
+  }
+
+  const handleDone = () => {
+    // Get winner info from WebSocket state
+    const winnerAddress = winnerInfo?.winnerAddress || ''
+    const winnerTxHash = winnerInfo?.txHash || ''
+    
+    // Redirect to winner announcement page
+    const params = new URLSearchParams({
+      tournamentId: tournamentId || '',
+      winnerAddress: winnerAddress,
+      winnerTxHash: winnerTxHash,
+      hostAddress: hostAddress,
+      guestAddress: guestAddress,
+      stakeAmount: stake || ''
+    })
+    router.push(`/winner-announcement?${params.toString()}`)
   }
 
   return (
@@ -209,9 +346,11 @@ export default function CompetitionPage() {
           
           <Button 
             className="w-full bg-green-500 hover:bg-green-600 text-white py-3 text-base font-medium flex items-center justify-center gap-2 rounded-lg shadow-lg transition-all duration-300"
-            disabled={!isRunning}
+            disabled={!isRunning && !isAnnouncingWinner}
           >
-            {isRunning ? 'Tournament in Progress...' : 'Tournament Complete'}
+            {isRunning ? 'Tournament in Progress...' : 
+             isAnnouncingWinner ? 'Recording Match Results...' : 
+             'Tournament Complete'}
           </Button>
         </div>
 
@@ -223,7 +362,13 @@ export default function CompetitionPage() {
               roomBet={roomBet}
               onPlayAgain={handlePlayAgain}
               onBackToHome={handleBackToHome}
+              onDone={winnerAnnounced ? handleDone : undefined}
             />
+            {winnerAnnounced && (
+              <div className="absolute top-4 right-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm">
+                ✅ Winner Announced
+              </div>
+            )}
           </div>
         )}
       </div>

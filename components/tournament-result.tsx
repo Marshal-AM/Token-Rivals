@@ -1,6 +1,6 @@
 "use client"
 
-import { TournamentResult } from '@/lib/tournament-service';
+import { type TournamentResult } from '@/lib/tournament-service';
 import { Trophy, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface TournamentResultProps {
@@ -8,13 +8,15 @@ interface TournamentResultProps {
   roomBet: 'LONG' | 'SHORT'; // Both players bet the same way
   onPlayAgain: () => void;
   onBackToHome: () => void;
+  onDone?: () => void; // Optional Done button
 }
 
 export function TournamentResult({ 
   result, 
   roomBet, 
   onPlayAgain, 
-  onBackToHome 
+  onBackToHome,
+  onDone
 }: TournamentResultProps) {
   const getWinnerText = () => {
     switch (result.winner) {
@@ -122,6 +124,14 @@ export function TournamentResult({
         >
           Back to Home
         </button>
+        {onDone && (
+          <button
+            onClick={onDone}
+            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all duration-300"
+          >
+            Done
+          </button>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,10 @@
+// Load environment variables from .env.local
+require('dotenv').config({ path: '.env.local' });
+
 const WebSocket = require('ws');
 const http = require('http');
 const crypto = require('crypto');
+const { TournamentOwnerService } = require('./lib/tournament-owner-service.js');
 
 // Create HTTP server
 const server = http.createServer();
@@ -12,7 +16,16 @@ const wss = new WebSocket.Server({ server });
 const rooms = new Map();
 const clients = new Map();
 
-console.log('🚀 TokenRivals Room Server starting...');
+// Initialize tournament owner service
+let tournamentOwnerService;
+try {
+  tournamentOwnerService = new TournamentOwnerService();
+  console.log('✅ Tournament Owner Service initialized');
+} catch (error) {
+  console.error('❌ Failed to initialize Tournament Owner Service:', error.message);
+}
+
+console.log('🚀 TokenRivals Room Server starting... v2.0');
 
 // Generate a random room ID
 function generateRoomId() {
@@ -55,6 +68,12 @@ wss.on('connection', (ws, req) => {
         case 'PLAYER_READY':
           handlePlayerReady(ws, data);
           break;
+        case 'STAKE_COMPLETED':
+          handleStakeCompleted(ws, data);
+          break;
+        case 'ANNOUNCE_WINNER':
+          handleAnnounceWinner(ws, data);
+          break;
         default:
           log(`❌ Unknown message type: ${data.type}`, 'ERROR');
       }
@@ -72,15 +91,22 @@ wss.on('connection', (ws, req) => {
       if (client.roomId && client.isHost) {
         const room = rooms.get(client.roomId);
         if (room) {
-          log(`🗑️ Host disconnected, cleaning up room: ${client.roomId}`);
-          // Notify other participants
-          if (room.guest) {
-            room.guest.send(JSON.stringify({
-              type: 'HOST_DISCONNECTED',
-              roomId: client.roomId
-            }));
-          }
-          rooms.delete(client.roomId);
+          log(`🗑️ Host disconnected, marking room for cleanup: ${client.roomId}`);
+          // Mark room for cleanup after 5 minutes instead of immediate deletion
+          setTimeout(() => {
+            const currentRoom = rooms.get(client.roomId);
+            if (currentRoom && currentRoom.host === ws) {
+              log(`🗑️ Cleaning up room after timeout: ${client.roomId}`);
+              // Notify other participants
+              if (currentRoom.guest) {
+                currentRoom.guest.send(JSON.stringify({
+                  type: 'HOST_DISCONNECTED',
+                  roomId: client.roomId
+                }));
+              }
+              rooms.delete(client.roomId);
+            }
+          }, 5 * 60 * 1000); // 5 minutes
         }
       }
       
@@ -134,7 +160,10 @@ function handleCreateRoom(ws, data) {
     status: 'waiting',
     createdAt: new Date(),
     requiredStake: data.hostData?.stake || 0,
-    betType: data.hostData?.bet || 'LONG'
+    betType: data.hostData?.bet || 'LONG',
+    tournamentId: null,
+    hostStaked: false,
+    guestStaked: false
   };
   
   rooms.set(roomId, room);
@@ -157,6 +186,7 @@ function handleGetRoomInfo(ws, data) {
   const roomId = data.roomId;
   
   log(`🔍 Client requesting room info for: ${roomId}`);
+  log(`📊 Current rooms: ${Array.from(rooms.keys()).join(', ')}`);
   
   const room = rooms.get(roomId);
   
@@ -171,10 +201,23 @@ function handleGetRoomInfo(ws, data) {
   
   if (room.guest) {
     log(`❌ Room ${roomId} is full`);
-    ws.send(JSON.stringify({
-      type: 'ROOM_INFO_FAILED',
-      error: 'Room is full'
-    }));
+    // Send tournament info if available, even for full rooms
+    if (room.tournamentId) {
+      log(`📡 Sending tournament info for full room: ${roomId}, tournament: ${room.tournamentId}`);
+      ws.send(JSON.stringify({
+        type: 'ROOM_INFO_SUCCESS',
+        roomId: roomId,
+        requiredStake: room.requiredStake,
+        betType: room.betType,
+        hostData: room.hostData,
+        tournamentId: room.tournamentId
+      }));
+    } else {
+      ws.send(JSON.stringify({
+        type: 'ROOM_INFO_FAILED',
+        error: 'Room is full'
+      }));
+    }
     return;
   }
   
@@ -184,7 +227,8 @@ function handleGetRoomInfo(ws, data) {
     roomId: roomId,
     requiredStake: room.requiredStake,
     betType: room.betType,
-    hostData: room.hostData
+    hostData: room.hostData,
+    tournamentId: room.tournamentId || null
   }));
   
   log(`✅ Room info sent for: ${roomId} (Stake: $${room.requiredStake}, Bet: ${room.betType})`);
@@ -247,10 +291,13 @@ function handleJoinRoom(ws, data) {
   log(`✅ Guest ${client.id} joined room: ${roomId}`);
   
   // Send join confirmation to guest
+  log(`📡 Sending JOIN_ROOM_SUCCESS to guest with betType: ${room.betType}, requiredStake: ${room.requiredStake}`);
   ws.send(JSON.stringify({
     type: 'JOIN_ROOM_SUCCESS',
     roomId: roomId,
-    hostData: room.hostData
+    hostData: room.hostData,
+    betType: room.betType,
+    requiredStake: room.requiredStake
   }));
   
   // Notify host about guest joining
@@ -272,7 +319,7 @@ function handleJoinRoom(ws, data) {
   }));
 }
 
-function handleHandshakeAccept(ws, data) {
+async function handleHandshakeAccept(ws, data) {
   const client = clients.get(ws);
   const roomId = data.roomId;
   
@@ -285,6 +332,93 @@ function handleHandshakeAccept(ws, data) {
   }
   
   room.status = 'accepted';
+  
+  // Create tournament on blockchain when both users are connected
+  log(`🔍 Checking tournament creation conditions:`);
+  log(`  - tournamentOwnerService: ${tournamentOwnerService ? '✅ Available' : '❌ Not available'}`);
+  log(`  - room.hostData: ${room.hostData ? '✅ Available' : '❌ Not available'}`);
+  log(`  - room.guestData: ${room.guestData ? '✅ Available' : '❌ Not available'}`);
+  
+  if (tournamentOwnerService && room.hostData && room.guestData) {
+    try {
+      log(`🏆 Creating tournament on blockchain for room: ${roomId}`);
+      
+      const hostAddress = room.hostData.hostAddress;
+      const guestAddress = room.guestData.hostAddress; // Guest address is stored in hostAddress field
+      
+      log(`Creating tournament with participants: Host(${hostAddress}), Guest(${guestAddress})`);
+      
+      // Use the tournament ID provided by the frontend if available
+      const frontendTournamentId = room.hostData.tournamentId;
+      log(`Frontend provided tournament ID: ${frontendTournamentId}`);
+      
+      let tournamentResult;
+      if (frontendTournamentId && frontendTournamentId !== '') {
+        // Use the frontend tournament ID
+        log(`Using frontend tournament ID: ${frontendTournamentId}`);
+        tournamentResult = await tournamentOwnerService.createTournament(hostAddress, guestAddress, parseInt(frontendTournamentId));
+      } else {
+        // Fallback to generating new tournament ID
+        log(`No frontend tournament ID provided, generating new one`);
+        tournamentResult = await tournamentOwnerService.createTournament(hostAddress, guestAddress);
+      }
+      
+      if (tournamentResult.success && tournamentResult.tournamentId) {
+        log(`✅ Tournament created successfully with ID: ${tournamentResult.tournamentId}`);
+        
+        // Store tournament ID in room
+        room.tournamentId = tournamentResult.tournamentId;
+        
+        // Send tournament creation notification to both players
+        const tournamentMessage = {
+          type: 'TOURNAMENT_CREATED',
+          roomId: roomId,
+          tournamentId: tournamentResult.tournamentId,
+          txHash: tournamentResult.txHash
+        };
+        
+        log(`📡 Sending TOURNAMENT_CREATED message to host and guest`);
+        log(`  - Host client ID: ${clients.get(room.host)?.id}`);
+        log(`  - Guest client ID: ${clients.get(room.guest)?.id}`);
+        log(`  - Host WebSocket readyState: ${room.host.readyState}`);
+        log(`  - Guest WebSocket readyState: ${room.guest.readyState}`);
+        log(`  - Tournament message: ${JSON.stringify(tournamentMessage)}`);
+        room.host.send(JSON.stringify(tournamentMessage));
+        room.guest.send(JSON.stringify(tournamentMessage));
+        
+        log(`📡 Tournament creation event sent to both clients for room: ${roomId}`);
+      } else {
+        log(`❌ Failed to create tournament: ${tournamentResult.error}`, 'ERROR');
+        
+        // Send error to both clients
+        const errorMessage = {
+          type: 'TOURNAMENT_CREATION_FAILED',
+          roomId: roomId,
+          error: tournamentResult.error || 'Failed to create tournament'
+        };
+        
+        room.host.send(JSON.stringify(errorMessage));
+        room.guest.send(JSON.stringify(errorMessage));
+      }
+    } catch (error) {
+      log(`❌ Error creating tournament: ${error.message}`, 'ERROR');
+      
+      // Send error to both clients
+      const errorMessage = {
+        type: 'TOURNAMENT_CREATION_FAILED',
+        roomId: roomId,
+        error: error.message
+      };
+      
+      room.host.send(JSON.stringify(errorMessage));
+      room.guest.send(JSON.stringify(errorMessage));
+    }
+  } else {
+    log(`⚠️ Cannot create tournament - missing service or participant data`, 'WARN');
+    log(`  - tournamentOwnerService: ${tournamentOwnerService ? 'available' : 'missing'}`);
+    log(`  - hostData: ${room.hostData ? 'available' : 'missing'}`);
+    log(`  - guestData: ${room.guestData ? 'available' : 'missing'}`);
+  }
   
   // Notify guest about handshake acceptance
   if (room.guest) {
@@ -303,6 +437,82 @@ function handleHandshakeAccept(ws, data) {
   }));
   
   log(`🎉 Handshake completed for room: ${roomId}`);
+}
+
+async function handleStakeCompleted(ws, data) {
+  const client = clients.get(ws);
+  const roomId = data.roomId;
+  const txHash = data.txHash;
+  
+  log(`💰 Stake completed for room: ${roomId}, txHash: ${txHash}`);
+  
+  const room = rooms.get(roomId);
+  if (!room) {
+    log(`❌ Room not found for stake completion: ${roomId}`, 'ERROR');
+    return;
+  }
+  
+  // Mark player as staked
+  if (client.isHost) {
+    room.hostStaked = true;
+    log(`✅ Host staked for room: ${roomId}`);
+  } else {
+    room.guestStaked = true;
+    log(`✅ Guest staked for room: ${roomId}`);
+  }
+  
+  // Check if both players have staked
+  if (room.hostStaked && room.guestStaked) {
+    log(`🎯 Both players staked for room: ${roomId} - verifying on contract`);
+    
+    // Verify both stakes on the blockchain
+    if (tournamentOwnerService && room.tournamentId) {
+      try {
+        const bothDeposited = await tournamentOwnerService.bothParticipantsDeposited(room.tournamentId);
+        
+        if (bothDeposited.success && bothDeposited.bothDeposited) {
+          log(`✅ Contract confirmed both players staked for tournament: ${room.tournamentId}`);
+          
+          // Send competition start signal to both players
+          const competitionMessage = {
+            type: 'BOTH_PLAYERS_STAKED',
+            roomId: roomId,
+            tournamentId: room.tournamentId,
+            message: 'Both players have staked successfully. Competition can begin!'
+          };
+          
+          room.host.send(JSON.stringify(competitionMessage));
+          room.guest.send(JSON.stringify(competitionMessage));
+          
+          room.status = 'ready_for_competition';
+          log(`🚀 Competition ready for room: ${roomId}`);
+        } else {
+          log(`⚠️ Contract verification failed - not all players have staked`, 'WARN');
+          
+          // Send waiting message to the player who just staked
+          ws.send(JSON.stringify({
+            type: 'WAITING_FOR_OPPONENT_STAKE',
+            roomId: roomId,
+            message: 'Waiting for opponent to complete their stake...'
+          }));
+        }
+      } catch (error) {
+        log(`❌ Error verifying stakes on contract: ${error.message}`, 'ERROR');
+      }
+    } else {
+      log(`⚠️ Cannot verify stakes - missing tournament service or ID`, 'WARN');
+    }
+  } else {
+    // Send waiting message to the player who just staked
+    const waitingPlayer = client.isHost ? 'guest' : 'host';
+    ws.send(JSON.stringify({
+      type: 'WAITING_FOR_OPPONENT_STAKE',
+      roomId: roomId,
+      message: `Waiting for ${waitingPlayer} to complete their stake...`
+    }));
+    
+    log(`⏳ Waiting for ${waitingPlayer} to stake in room: ${roomId}`);
+  }
 }
 
 function handleHandshakeReject(ws, data) {
@@ -377,6 +587,94 @@ function handlePlayerReady(ws, data) {
     }));
     
     room.status = 'tournament';
+  }
+}
+
+async function handleAnnounceWinner(ws, data) {
+  const client = clients.get(ws);
+  const roomId = data.roomId;
+  const winnerAddress = data.winnerAddress;
+  
+  log(`🏆 Winner announcement requested for room: ${roomId}, winner: ${winnerAddress}`);
+  
+  const room = rooms.get(roomId);
+  if (!room) {
+    log(`❌ Room not found for winner announcement: ${roomId}`, 'ERROR');
+    return;
+  }
+  
+  // Verify the client is a participant
+  const isHost = room.host === ws;
+  const isGuest = room.guest === ws;
+  
+  if (!isHost && !isGuest) {
+    log(`❌ Non-participant trying to announce winner`, 'ERROR');
+    return;
+  }
+  
+  // Verify the winner is one of the participants
+  const hostAddress = room.hostData?.hostAddress;
+  const guestAddress = room.guestData?.hostAddress;
+  
+  if (winnerAddress.toLowerCase() !== hostAddress?.toLowerCase() && 
+      winnerAddress.toLowerCase() !== guestAddress?.toLowerCase()) {
+    log(`❌ Invalid winner address: ${winnerAddress}`, 'ERROR');
+    return;
+  }
+  
+  // Announce winner on blockchain
+  if (tournamentOwnerService && room.tournamentId) {
+    try {
+      log(`🏆 Announcing winner on blockchain for tournament: ${room.tournamentId}`);
+      
+      const result = await tournamentOwnerService.announceWinner(room.tournamentId, winnerAddress);
+      
+      if (result.success && result.txHash) {
+        log(`✅ Winner announced successfully with tx: ${result.txHash}`);
+        
+        // Send winner announcement to both players
+        const winnerMessage = {
+          type: 'WINNER_ANNOUNCED',
+          roomId: roomId,
+          tournamentId: room.tournamentId,
+          winnerAddress: winnerAddress,
+          txHash: result.txHash
+        };
+        
+        room.host.send(JSON.stringify(winnerMessage));
+        if (room.guest) {
+          room.guest.send(JSON.stringify(winnerMessage));
+        }
+        
+        log(`📡 Winner announcement sent to both clients for room: ${roomId}`);
+      } else {
+        log(`❌ Failed to announce winner: ${result.error}`, 'ERROR');
+        
+        // Send error to the requesting client
+        ws.send(JSON.stringify({
+          type: 'WINNER_ANNOUNCEMENT_FAILED',
+          roomId: roomId,
+          error: result.error || 'Failed to announce winner'
+        }));
+      }
+    } catch (error) {
+      log(`❌ Error announcing winner: ${error.message}`, 'ERROR');
+      
+      // Send error to the requesting client
+      ws.send(JSON.stringify({
+        type: 'WINNER_ANNOUNCEMENT_FAILED',
+        roomId: roomId,
+        error: error.message
+      }));
+    }
+  } else {
+    log(`⚠️ Cannot announce winner - missing service or tournament ID`, 'WARN');
+    
+    ws.send(JSON.stringify({
+      type: 'WINNER_ANNOUNCEMENT_FAILED',
+      roomId: roomId,
+      error: 'Tournament service not available'
+    }));
   }
 }
 

@@ -21,7 +21,7 @@ export function MobileFrame({ children }: MobileFrameProps) {
       <div className="fixed inset-0 flex items-center justify-center z-10 p-4">
         <div className="relative w-[380px] h-[700px] bg-mobile-frame-dark rounded-3xl shadow-2xl flex flex-col border-4 border-gray-900">
           <GameHeader />
-          <div className="flex-1 overflow-hidden">{children}</div>
+          <div className="flex-1 min-h-0">{children}</div>
         </div>
       </div>
     </div>

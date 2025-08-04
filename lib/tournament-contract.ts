@@ -74,7 +74,7 @@ export class TournamentContract {
   async connectWallet() {
     try {
       if (typeof window.ethereum !== 'undefined') {
-        this.provider = new ethers.BrowserProvider(window.ethereum)
+        this.provider = new ethers.BrowserProvider(window.ethereum as any)
         this.signer = await this.provider.getSigner()
         
         // Create contract instance with signer for write operations
@@ -105,14 +105,22 @@ export class TournamentContract {
         throw new Error('Contract not initialized or wallet not connected')
       }
 
+      console.log(`Creating tournament with participants: ${participant1}, ${participant2}`)
+      
       const tournamentId = this.generateTournamentId()
       
-      console.log(`Creating tournament ${tournamentId} with participants:`, { participant1, participant2 })
+      // Send transaction with retry logic
+      const tx = await this.retryWithBackoff(async () => {
+        return await this.contract!.createTournament(tournamentId, participant1, participant2)
+      })
       
-      const tx = await this.contract.createTournament(tournamentId, participant1, participant2)
-      console.log('Tournament creation transaction:', tx.hash)
+      console.log('Create tournament transaction:', tx.hash)
       
-      const receipt = await tx.wait()
+      // Wait for transaction receipt with retry logic
+      const receipt = await this.retryWithBackoff(async () => {
+        return await tx.wait()
+      })
+      
       console.log('Tournament created successfully:', receipt)
       
       return {
@@ -126,27 +134,67 @@ export class TournamentContract {
     }
   }
 
-  // Deposit XTZ stake for tournament
+  // Helper function to handle rate limiting with retry logic
+  private async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+  ): Promise<T> {
+    let lastError: any;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        lastError = error;
+        
+        // Check if it's a rate limiting error
+        const isRateLimitError = error?.code === -32005 || 
+                               error?.message?.includes('rate limited') ||
+                               error?.message?.includes('Request is being rate limited');
+        
+        if (isRateLimitError && attempt < maxRetries) {
+          const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
+          console.log(`Rate limited, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        // If it's not a rate limit error or we've exhausted retries, throw the error
+        throw error;
+      }
+    }
+    
+    throw lastError;
+  }
+
   async depositStake(tournamentId: number, amountInXtz: string): Promise<{ success: boolean, txHash?: string }> {
     try {
       if (!this.contract || !this.signer) {
         throw new Error('Contract not initialized or wallet not connected')
       }
 
-      const amountWei = ethers.parseEther(amountInXtz)
-      
       console.log(`Depositing ${amountInXtz} XTZ for tournament ${tournamentId}`)
       
-      const tx = await this.contract.depositEscrow(
-        tournamentId,
-        ethers.ZeroAddress, // Native currency (XTZ) deposit
-        0,
-        { value: amountWei }
-      )
+      const amountWei = ethers.parseEther(amountInXtz)
+      
+      // Send transaction with retry logic
+      const tx = await this.retryWithBackoff(async () => {
+        return await this.contract!.depositEscrow(
+          tournamentId,
+          ethers.ZeroAddress, // Native currency (XTZ) deposit
+          0,
+          { value: amountWei }
+        )
+      })
       
       console.log('Deposit transaction:', tx.hash)
       
-      const receipt = await tx.wait()
+      // Wait for transaction receipt with retry logic
+      const receipt = await this.retryWithBackoff(async () => {
+        return await tx.wait()
+      })
+      
       console.log('Deposit successful:', receipt)
       
       return {
@@ -166,7 +214,9 @@ export class TournamentContract {
         throw new Error('Contract not initialized')
       }
 
-      const escrow = await this.contract.getEscrow(tournamentId, userAddress)
+      const escrow = await this.retryWithBackoff(async () => {
+        return await this.contract!.getEscrow(tournamentId, userAddress)
+      })
       
       return {
         participant: escrow.participant,
@@ -188,7 +238,9 @@ export class TournamentContract {
         throw new Error('Contract not initialized')
       }
 
-      const tournament = await this.contract.getTournament(tournamentId)
+      const tournament = await this.retryWithBackoff(async () => {
+        return await this.contract!.getTournament(tournamentId)
+      })
       
       return {
         tournamentId: tournament.tournamentId,
@@ -215,7 +267,9 @@ export class TournamentContract {
         throw new Error('Contract not initialized')
       }
 
-      return await this.contract.bothParticipantsDeposited(tournamentId)
+      return await this.retryWithBackoff(async () => {
+        return await this.contract!.bothParticipantsDeposited(tournamentId)
+      })
     } catch (error) {
       console.error('Error checking deposits:', error)
       return false
@@ -231,10 +285,54 @@ export class TournamentContract {
 
       console.log(`Announcing winner ${winnerAddress} for tournament ${tournamentId}`)
       
-      const tx = await this.contract.announceWinner(tournamentId, winnerAddress)
-      console.log('Winner announcement transaction:', tx.hash)
+      // Pre-flight checks with retry logic
+      try {
+        const tournament = await this.retryWithBackoff(async () => {
+          return await this.contract!.getTournament(tournamentId)
+        })
+        const bothDeposited = await this.retryWithBackoff(async () => {
+          return await this.contract!.bothParticipantsDeposited(tournamentId)
+        })
+        const signerAddress = await this.signer.getAddress()
+        
+        if (!tournament) {
+          throw new Error('Tournament not found')
+        }
+        
+        if (tournament.isCompleted) {
+          throw new Error('Tournament already completed')
+        }
+        
+        if (!bothDeposited) {
+          throw new Error('Both participants must deposit before announcing winner')
+        }
+        
+        if (tournament.participant1.toLowerCase() !== winnerAddress.toLowerCase() && 
+            tournament.participant2.toLowerCase() !== winnerAddress.toLowerCase()) {
+          throw new Error('Winner address must be one of the tournament participants')
+        }
+        
+        if (tournament.participant1.toLowerCase() !== signerAddress.toLowerCase() && 
+            tournament.participant2.toLowerCase() !== signerAddress.toLowerCase()) {
+          throw new Error('Only tournament participants can announce winner')
+        }
+      } catch (error) {
+        console.error('Pre-flight check failed:', error)
+        return { success: false }
+      }
       
-      const receipt = await tx.wait()
+      // Send transaction with retry logic
+      const tx = await this.retryWithBackoff(async () => {
+        return await this.contract!.announceWinner(tournamentId, winnerAddress)
+      })
+      
+      console.log('Announce winner transaction:', tx.hash)
+      
+      // Wait for transaction receipt with retry logic
+      const receipt = await this.retryWithBackoff(async () => {
+        return await tx.wait()
+      })
+      
       console.log('Winner announced successfully:', receipt)
       
       return {
@@ -247,19 +345,42 @@ export class TournamentContract {
     }
   }
 
-  // Emergency withdraw
+  // Emergency withdraw function for participants
   async emergencyWithdraw(tournamentId: number): Promise<{ success: boolean, txHash?: string }> {
     try {
       if (!this.contract || !this.signer) {
         throw new Error('Contract not initialized or wallet not connected')
       }
 
-      console.log(`Emergency withdraw for tournament ${tournamentId}`)
+      console.log(`Emergency withdrawing from tournament ${tournamentId}`)
       
-      const tx = await this.contract.emergencyWithdraw(tournamentId)
+      const signerAddress = await this.signer.getAddress()
+      
+      // Check if user has deposited
+      const escrow = await this.retryWithBackoff(async () => {
+        return await this.contract!.getEscrow(tournamentId, signerAddress)
+      })
+      
+      if (!escrow.isDeposited) {
+        throw new Error('No deposit found for this address')
+      }
+      
+      if (escrow.isWithdrawn) {
+        throw new Error('Deposit already withdrawn')
+      }
+      
+      // Send transaction with retry logic
+      const tx = await this.retryWithBackoff(async () => {
+        return await this.contract!.emergencyWithdraw(tournamentId)
+      })
+      
       console.log('Emergency withdraw transaction:', tx.hash)
       
-      const receipt = await tx.wait()
+      // Wait for transaction receipt with retry logic
+      const receipt = await this.retryWithBackoff(async () => {
+        return await tx.wait()
+      })
+      
       console.log('Emergency withdraw successful:', receipt)
       
       return {
@@ -267,7 +388,7 @@ export class TournamentContract {
         txHash: tx.hash
       }
     } catch (error) {
-      console.error('Error in emergency withdraw:', error)
+      console.error('Error emergency withdrawing:', error)
       return { success: false }
     }
   }

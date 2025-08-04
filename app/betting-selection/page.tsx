@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,30 +15,38 @@ export default function BettingSelectionPage() {
   const [selectedBet, setSelectedBet] = useState<"SHORT" | "LONG" | null>(null)
   const [stakeAmount, setStakeAmount] = useState<string>("")
   
-  const { isConnected, isContractReady, userBalance } = useWallet()
+  const { userBalance, isConnected, isContractReady } = useWallet()
 
   const handleBetSelection = (bet: "SHORT" | "LONG") => {
     setSelectedBet(bet)
   }
 
   const handleCreateRoom = () => {
-    if (selectedBet && stakeAmount && parseFloat(stakeAmount) > 0) {
-      const selectedPlayersParam = searchParams.get("selectedPlayers")
-      const formation = searchParams.get("formation")
-      
-      // Navigate to new room creation page with WebSocket
-      router.push(`/room-creation?bet=${selectedBet}&stake=${stakeAmount}&selectedPlayers=${selectedPlayersParam}&formation=${formation}`)
-    }
+    if (!selectedBet || !stakeAmount || parseFloat(stakeAmount) <= 0) return
+    
+    console.log('Creating room - staking will happen in waiting room after opponent joins')
+    
+    // Generate tournament ID that will be used throughout the entire flow
+    const tournamentId = Date.now() + Math.floor(Math.random() * 1000)
+    console.log('Generated tournament ID:', tournamentId)
+    
+    // Navigate to room creation, staking will happen later
+    const selectedPlayersParam = searchParams.get("selectedPlayers")
+    const formation = searchParams.get("formation")
+    
+    router.push(`/room-creation?bet=${selectedBet}&stake=${stakeAmount}&selectedPlayers=${selectedPlayersParam}&formation=${formation}&tournamentId=${tournamentId}`)
   }
 
   const handleJoinRoom = () => {
-    if (selectedBet && stakeAmount && parseFloat(stakeAmount) > 0) {
-      const selectedPlayersParam = searchParams.get("selectedPlayers")
-      const formation = searchParams.get("formation")
-      
-      // Navigate to room join page with current settings
-      router.push(`/room-join?bet=${selectedBet}&stake=${stakeAmount}&selectedPlayers=${selectedPlayersParam}&formation=${formation}`)
-    }
+    if (!selectedBet || !stakeAmount || parseFloat(stakeAmount) <= 0) return
+    
+    console.log('Joining room - staking will happen in waiting room after room details are fetched')
+    
+    // Navigate to room join page, staking will happen later
+    const selectedPlayersParam = searchParams.get("selectedPlayers")
+    const formation = searchParams.get("formation")
+    
+    router.push(`/room-join?bet=${selectedBet}&stake=${stakeAmount}&selectedPlayers=${selectedPlayersParam}&formation=${formation}`)
   }
 
   const handleStakeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,11 +57,11 @@ export default function BettingSelectionPage() {
     }
   }
 
-  const canProceed = isConnected && isContractReady && selectedBet && stakeAmount && parseFloat(stakeAmount) > 0 && parseFloat(stakeAmount) <= parseFloat(userBalance)
+  const canProceed = selectedBet && stakeAmount && parseFloat(stakeAmount) > 0 && isConnected && isContractReady
 
   return (
     <MobileFrame>
-      <div className="flex-1 overflow-y-auto bg-gray-900">
+      <div className="h-full overflow-y-auto bg-gray-900">
         <div className="p-4">
           {/* Header with back button */}
           <div className="flex items-center mb-6">
