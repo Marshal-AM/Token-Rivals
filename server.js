@@ -9,7 +9,7 @@ const { TournamentOwnerService } = require('./lib/tournament-owner-service.js');
 // Create HTTP server
 const server = http.createServer();
 
-// Create WebSocket server
+// Create WebSocket server.
 const wss = new WebSocket.Server({ server });
 
 // Store active rooms and their participants
