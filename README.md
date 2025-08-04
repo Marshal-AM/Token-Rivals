@@ -1,4 +1,4 @@
-# 🚀 TokenRivals - Bet on Your Favorite Tokens Going Bullish! (or Bearish 👀) 📈📉
+# 🚀 TokenRivals - Bet on Your Favorite Tokens being Bullish! (or Bearish 👀) 📈📉
 
 ## 🎮 Overview
 
@@ -7,6 +7,13 @@ Build your dream crypto squad, challenge other traders, and watch your predictio
 Built on Etherlink with live Pyth price feeds, TokenRivals combines fantasy football mechanics with real-time cryptocurrency trading. Choose your tokens, pick your direction, and let the market decide who's the ultimate crypto trader! 💎
 
 **Ready to bet on your favorite tokens?** Let's go! 🎮🔥
+
+## Get Started
+
+1. **Go to** [Token Rivals](https://token-rivals.vercel.app)
+2. **Create a room**
+3. **Call up your friend, send him the code**
+4. **Start playing! ⚔️**
 
 ## 🎮 Game Flow
 
