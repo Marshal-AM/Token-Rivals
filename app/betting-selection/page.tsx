@@ -64,10 +64,10 @@ function BettingSelectionContent() {
       <div className="h-full overflow-y-auto bg-gray-900">
         <div className="p-4">
           {/* Header with back button */}
-          <div className="flex items-center mb-6">
+          <div className="flex items-center mb-6 relative">
             <button 
               onClick={() => router.back()}
-              className="text-gray-400 hover:text-white mr-4"
+              className="absolute left-0 text-gray-400 hover:text-white"
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
@@ -187,7 +187,7 @@ function BettingSelectionContent() {
               disabled={!canProceed}
               className={`w-full py-3 text-lg font-bold rounded-lg transition-all duration-300 ${
                 canProceed
-                  ? "bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700" 
+                  ? "bg-button-green hover:bg-green-600" 
                   : "bg-gray-600 cursor-not-allowed"
               }`}
             >

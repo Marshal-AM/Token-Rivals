@@ -337,7 +337,7 @@ function TournamentWaitingContent() {
                     disabled={isStaking || !isContractReady}
                     className={`w-full py-3 text-lg font-bold rounded-lg transition-all duration-300 ${
                       !isStaking && isContractReady
-                        ? "bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700" 
+                        ? "bg-button-green hover:bg-green-600" 
                         : "bg-gray-600 cursor-not-allowed"
                     }`}
                   >

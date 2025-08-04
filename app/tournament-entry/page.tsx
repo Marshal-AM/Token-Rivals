@@ -40,13 +40,14 @@ function TournamentEntryContent() {
       <div className="flex flex-col h-full bg-gray-900">
         {/* Header */}
         <div className="flex items-center justify-between p-4 bg-gray-800 border-b border-gray-700">
-          <h1 className="text-xl font-bold text-white">Enter Tournament</h1>
           <button 
             onClick={() => router.back()}
             className="text-gray-400 hover:text-white"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
+          <h1 className="text-xl font-bold text-white">Enter Tournament</h1>
+          <div className="w-6 h-6"></div>
         </div>
 
         {/* Content */}
@@ -130,7 +131,7 @@ function TournamentEntryContent() {
                     disabled={!roomId.trim()}
                     className={`w-full py-3 text-lg font-bold rounded-lg transition-all duration-300 ${
                       roomId.trim()
-                        ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        ? "bg-button-green hover:bg-green-600"
                         : "bg-gray-600 cursor-not-allowed"
                     }`}
                   >

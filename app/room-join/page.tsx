@@ -213,7 +213,7 @@ function RoomJoinContent() {
               <Button
                 onClick={handleGetRoomInfo}
                 disabled={!roomCode.trim() || isLoadingRoomInfo}
-                className="w-full py-3 text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg transition-all duration-300"
+                className="w-full py-3 text-lg font-bold bg-button-green hover:bg-green-600 rounded-lg transition-all duration-300"
               >
                 {isLoadingRoomInfo ? (
                   <>
@@ -231,7 +231,7 @@ function RoomJoinContent() {
               <Button
                 onClick={handleJoinRoom}
                 disabled={!roomInfo || !userStakeAmount || parseFloat(userStakeAmount) !== roomInfo.requiredStake || isJoining}
-                className="w-full py-3 text-lg font-bold bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 rounded-lg transition-all duration-300"
+                className="w-full py-3 text-lg font-bold bg-button-green hover:bg-green-600 rounded-lg transition-all duration-300"
               >
                 {isJoining ? (
                   <>

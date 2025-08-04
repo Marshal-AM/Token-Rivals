@@ -48,7 +48,7 @@ export function WalletConnection({
         <Button
           onClick={handleConnect}
           disabled={isConnecting}
-          className="w-full py-3 text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg transition-all duration-300"
+          className="w-full py-3 text-lg font-bold bg-button-green hover:bg-green-600 rounded-lg transition-all duration-300"
         >
           {isConnecting ? (
             <>

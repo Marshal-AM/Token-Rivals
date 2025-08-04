@@ -114,7 +114,7 @@ export function TournamentResult({
       <div className="space-y-3">
         <button
           onClick={onPlayAgain}
-          className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold rounded-lg transition-all duration-300"
+          className="w-full py-3 px-4 bg-button-green hover:bg-green-600 text-white font-bold rounded-lg transition-all duration-300"
         >
           Play Again
         </button>

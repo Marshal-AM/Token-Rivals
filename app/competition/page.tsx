@@ -248,7 +248,7 @@ function CompetitionContent() {
         <div className="p-4 bg-gray-800 border-b border-gray-700">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-purple-500 rounded flex items-center justify-center">
+              <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center">
                 <span className="text-white text-xs font-bold">S</span>
               </div>
               <span className="text-white text-sm">0.00</span>
