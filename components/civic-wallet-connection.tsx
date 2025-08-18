@@ -25,7 +25,8 @@ export function WalletConnection({
     networkInfo, 
     isContractReady,
     connectWallet,
-    isConnecting
+    isConnecting,
+    signIn
   } = useWallet()
   
   const userContext = useUser()
@@ -77,10 +78,14 @@ export function WalletConnection({
           </Alert>
         )}
         
-        {/* Use Civic Auth's UserButton for proper sign-in flow */}
-        <div className="w-full">
-          <UserButton />
-        </div>
+        {/* Custom sign-in button instead of UserButton for better control */}
+        <Button
+          onClick={signIn}
+          className="w-full py-3 text-lg font-bold bg-blue-600 hover:bg-blue-700 rounded-lg transition-all duration-300"
+        >
+          <Wallet className="w-5 h-5 mr-2" />
+          Sign In with Civic
+        </Button>
       </div>
     )
   }

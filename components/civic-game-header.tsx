@@ -1,7 +1,7 @@
 'use client'
 
 import { useWallet } from '@/contexts/civic-wallet-context'
-import { UserButton, useUser } from "@civic/auth-web3/react"
+import { useUser } from "@civic/auth-web3/react"
 import { userHasWallet } from "@civic/auth-web3"
 import { Button } from '@/components/ui/button'
 import { Wallet, LogOut } from 'lucide-react'
@@ -12,7 +12,9 @@ export function GameHeader() {
     isConnected, 
     address, 
     userBalance,
-    connectWallet
+    connectWallet,
+    signIn,
+    signOut
   } = useWallet()
   
   const userContext = useUser()
@@ -49,10 +51,15 @@ export function GameHeader() {
               </span>
             </div>
 
-            {/* Use Civic Auth's UserButton for logout */}
-            <div className="text-xs">
-              <UserButton />
-            </div>
+            {/* Logout Button */}
+            <Button
+              onClick={signOut}
+              variant="outline"
+              size="sm"
+              className="p-2 h-8 w-8 text-white bg-button-green hover:bg-green hover:text-white"
+            >
+              <LogOut className="w-3 h-3" />
+            </Button>
           </>
         ) : userContext.user && !userHasWallet(userContext) ? (
           /* User is logged in but needs to create wallet */
@@ -76,10 +83,15 @@ export function GameHeader() {
             Connect
           </Button>
         ) : (
-          /* Use Civic Auth's UserButton for login */
-          <div className="text-xs">
-            <UserButton />
-          </div>
+          /* Sign in button with green styling */
+          <Button
+            onClick={signIn}
+            size="sm"
+            className="bg-button-green hover:bg-green-600 px-3 py-1 text-xs"
+          >
+            <Wallet className="w-3 h-3 mr-1" />
+            Connect
+          </Button>
         )}
       </div>
     </div>

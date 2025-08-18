@@ -21,6 +21,10 @@ interface WalletContextType {
   // Tournament state
   pendingStakes: Map<number, { amount: string; status: 'pending' | 'confirmed' | 'failed' }>
   
+  // Auth functions
+  signIn: () => Promise<{ user: any }>
+  signOut: () => Promise<void>
+  
   // Functions
   connectWallet: () => Promise<boolean>
   disconnectWallet: () => void
@@ -42,6 +46,10 @@ export function WalletProvider({ children }: WalletProviderProps) {
   const userContext = useUser()
   const { isConnected: wagmiConnected, address: wagmiAddress } = useAccount()
   const { connect, connectors } = useConnect()
+  
+  // Export sign in/out functions for components to use
+  const signIn = userContext.signIn
+  const signOut = userContext.signOut
   
   // Auto-connect to Civic embedded wallet
   useAutoConnect()
@@ -265,6 +273,10 @@ export function WalletProvider({ children }: WalletProviderProps) {
     
     // Tournament state
     pendingStakes,
+    
+    // Auth functions
+    signIn,
+    signOut,
     
     // Functions
     connectWallet,
