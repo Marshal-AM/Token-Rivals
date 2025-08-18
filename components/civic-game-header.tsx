@@ -4,8 +4,9 @@ import { useWallet } from '@/contexts/civic-wallet-context'
 import { useUser } from "@civic/auth-web3/react"
 import { userHasWallet } from "@civic/auth-web3"
 import { Button } from '@/components/ui/button'
-import { Wallet, LogOut } from 'lucide-react'
+import { Wallet, LogOut, Copy, Check } from 'lucide-react'
 import Image from 'next/image'
+import { useState } from 'react'
 
 export function GameHeader() {
   const { 
@@ -17,7 +18,20 @@ export function GameHeader() {
     signOut
   } = useWallet()
   
+  const [copied, setCopied] = useState(false)
   const userContext = useUser()
+
+  const copyAddress = async () => {
+    if (address) {
+      try {
+        await navigator.clipboard.writeText(address)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch (err) {
+        console.error('Failed to copy address:', err)
+      }
+    }
+  }
 
   return (
     <div className="flex items-center justify-between p-3 bg-mobile-frame-dark text-white border-b border-gray-800">
@@ -46,9 +60,20 @@ export function GameHeader() {
             
             <div className="flex flex-col items-end">
               <span className="text-xs text-gray-400">Account</span>
-              <span className="text-xs font-mono text-blue-400">
-                {address ? `${address.slice(0, 4)}...${address.slice(-4)}` : 'N/A'}
-              </span>
+              <button
+                onClick={copyAddress}
+                className="flex items-center gap-1 text-xs font-mono text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
+                title="Click to copy full address"
+              >
+                <span>
+                  {address ? `${address.slice(0, 4)}...${address.slice(-4)}` : 'N/A'}
+                </span>
+                {copied ? (
+                  <Check className="w-3 h-3 text-green-400" />
+                ) : (
+                  <Copy className="w-3 h-3" />
+                )}
+              </button>
             </div>
 
             {/* Logout Button */}
