@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Trophy, Check, AlertCircle, Loader2, DollarSign } from "lucide-react"
 import { MobileFrame } from "@/components/mobile-frame"
-import { useWallet } from "@/contexts/wallet-context"
+import { useWallet } from "@/contexts/civic-wallet-context"
 import { useRoomWebSocket } from "@/hooks/use-room-websocket"
 
 function TournamentWaitingContent() {

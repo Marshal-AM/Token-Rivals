@@ -1,6 +1,6 @@
 import Image from "next/image"
 import type { ReactNode } from "react"
-import { GameHeader } from "./game-header"
+import { GameHeader } from "./civic-game-header"
 
 interface MobileFrameProps {
   children: ReactNode

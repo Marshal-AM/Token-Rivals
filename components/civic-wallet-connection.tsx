@@ -1,9 +1,8 @@
 'use client'
 
-// Import the wagmi configuration to initialize AppKit
-import '@/lib/wagmi'
-import { useAppKit } from '@reown/appkit/react'
-import { useWallet } from '@/contexts/wallet-context'
+import { useWallet } from '@/contexts/civic-wallet-context'
+import { UserButton, useUser } from "@civic/auth-web3/react"
+import { userHasWallet } from "@civic/auth-web3"
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Wallet, Check, AlertCircle, Loader2 } from 'lucide-react'
@@ -19,21 +18,75 @@ export function WalletConnection({
   showBalance = true, 
   className = "" 
 }: WalletConnectionProps) {
-  const { open } = useAppKit()
   const { 
     isConnected, 
     address, 
     userBalance, 
     networkInfo, 
     isContractReady,
-    isConnecting 
+    connectWallet,
+    isConnecting
   } = useWallet()
+  
+  const userContext = useUser()
 
-  const handleConnect = () => {
-    open()
+  // If user is logged in but doesn't have a wallet, show wallet creation option
+  if (userContext.user && !userHasWallet(userContext)) {
+    return (
+      <div className={`space-y-4 ${className}`}>
+        {requireConnection && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-yellow-400">
+              Please create a wallet to continue
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        <Button
+          onClick={() => userContext.createWallet()}
+          disabled={userContext.walletCreationInProgress}
+          className="w-full py-3 text-lg font-bold bg-button-green hover:bg-green-600 rounded-lg transition-all duration-300"
+        >
+          {userContext.walletCreationInProgress ? (
+            <>
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              Creating Wallet...
+            </>
+          ) : (
+            <>
+              <Wallet className="w-5 h-5 mr-2" />
+              Create Web3 Wallet
+            </>
+          )}
+        </Button>
+      </div>
+    )
   }
 
-  if (!isConnected) {
+  // If user is not logged in, show login button
+  if (!userContext.user) {
+    return (
+      <div className={`space-y-4 ${className}`}>
+        {requireConnection && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-yellow-400">
+              Please sign in to continue
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {/* Use Civic Auth's UserButton for proper sign-in flow */}
+        <div className="w-full">
+          <UserButton />
+        </div>
+      </div>
+    )
+  }
+
+  // If user has wallet but not connected to Wagmi, show connect button
+  if (userHasWallet(userContext) && !isConnected) {
     return (
       <div className={`space-y-4 ${className}`}>
         {requireConnection && (
@@ -46,7 +99,7 @@ export function WalletConnection({
         )}
         
         <Button
-          onClick={handleConnect}
+          onClick={connectWallet}
           disabled={isConnecting}
           className="w-full py-3 text-lg font-bold bg-button-green hover:bg-green-600 rounded-lg transition-all duration-300"
         >
@@ -75,14 +128,10 @@ export function WalletConnection({
             <Check className="w-4 h-4 text-green-500" />
             <span className="text-sm font-semibold text-green-400">Wallet Connected</span>
           </div>
-          <Button 
-            onClick={handleConnect}
-            variant="outline"
-            size="sm"
-            className="text-xs"
-          >
-            Change
-          </Button>
+          {/* Use Civic Auth's UserButton for logout functionality */}
+          <div className="text-xs">
+            <UserButton />
+          </div>
         </div>
         
         <div className="space-y-1 text-sm text-gray-300">

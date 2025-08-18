@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Users, Check, AlertCircle, Loader2 } from "lucide-react"
 import { MobileFrame } from "@/components/mobile-frame"
 import { useRoomWebSocket } from "@/hooks/use-room-websocket"
-import { useWallet } from "@/contexts/wallet-context"
+import { useWallet } from "@/contexts/civic-wallet-context"
 
 function RoomJoinContent() {
   const router = useRouter()

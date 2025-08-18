@@ -9,7 +9,7 @@ import { useTournament } from "@/hooks/use-tournament"
 import { TournamentChart } from "@/components/tournament-chart"
 import { TournamentResult } from "@/components/tournament-result"
 import { TournamentResult as TournamentResultType } from "@/lib/tournament-service"
-import { useWallet } from "@/contexts/wallet-context"
+import { useWallet } from "@/contexts/civic-wallet-context"
 import { useRoomWebSocket } from "@/hooks/use-room-websocket"
 
 function CompetitionContent() {

@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ArrowLeft, TrendingUp, TrendingDown, DollarSign } from "lucide-react"
 import { MobileFrame } from "@/components/mobile-frame"
-import { WalletConnection } from "@/components/wallet-connection"
-import { useWallet } from "@/contexts/wallet-context"
+import { WalletConnection } from "@/components/civic-wallet-connection"
+import { useWallet } from "@/contexts/civic-wallet-context"
 
 function BettingSelectionContent() {
   const router = useRouter()

@@ -1,30 +1,21 @@
 'use client'
 
-// Import the wagmi configuration to initialize AppKit
-import '@/lib/wagmi'
-import { useAppKit } from '@reown/appkit/react'
-import { useWallet } from '@/contexts/wallet-context'
+import { useWallet } from '@/contexts/civic-wallet-context'
+import { UserButton, useUser } from "@civic/auth-web3/react"
+import { userHasWallet } from "@civic/auth-web3"
 import { Button } from '@/components/ui/button'
 import { Wallet, LogOut } from 'lucide-react'
 import Image from 'next/image'
 
 export function GameHeader() {
-  const { open } = useAppKit()
   const { 
     isConnected, 
     address, 
     userBalance,
-    disconnectWallet,
-    isConnecting 
+    connectWallet
   } = useWallet()
-
-  const handleConnect = () => {
-    open()
-  }
-
-  const handleDisconnect = async () => {
-    await disconnectWallet()
-  }
+  
+  const userContext = useUser()
 
   return (
     <div className="flex items-center justify-between p-3 bg-mobile-frame-dark text-white border-b border-gray-800">
@@ -41,7 +32,7 @@ export function GameHeader() {
 
       {/* Right side - Wallet connection */}
       <div className="flex items-center space-x-2">
-        {isConnected ? (
+        {isConnected && userHasWallet(userContext) ? (
           <>
             {/* Balance and Address */}
             <div className="flex flex-col items-end">
@@ -58,26 +49,37 @@ export function GameHeader() {
               </span>
             </div>
 
-            {/* Disconnect Button */}
-            <Button
-              onClick={handleDisconnect}
-              variant="outline"
-              size="sm"
-              className="p-2 h-8 w-8 text-white bg-button-green hover:bg-green hover:text-white"
-            >
-              <LogOut className="w-3 h-3" />
-            </Button>
+            {/* Use Civic Auth's UserButton for logout */}
+            <div className="text-xs">
+              <UserButton />
+            </div>
           </>
-        ) : (
+        ) : userContext.user && !userHasWallet(userContext) ? (
+          /* User is logged in but needs to create wallet */
           <Button
-            onClick={handleConnect}
-            disabled={isConnecting}
+            onClick={() => userContext.createWallet()}
+            disabled={userContext.walletCreationInProgress}
             size="sm"
             className="bg-button-green hover:bg-green-600 px-3 py-1 text-xs"
           >
             <Wallet className="w-3 h-3 mr-1" />
-            {isConnecting ? 'Connecting...' : 'Connect'}
+            {userContext.walletCreationInProgress ? 'Creating...' : 'Create Wallet'}
           </Button>
+        ) : userHasWallet(userContext) && !isConnected ? (
+          /* User has wallet but not connected */
+          <Button
+            onClick={connectWallet}
+            size="sm"
+            className="bg-button-green hover:bg-green-600 px-3 py-1 text-xs"
+          >
+            <Wallet className="w-3 h-3 mr-1" />
+            Connect
+          </Button>
+        ) : (
+          /* Use Civic Auth's UserButton for login */
+          <div className="text-xs">
+            <UserButton />
+          </div>
         )}
       </div>
     </div>

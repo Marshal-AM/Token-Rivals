@@ -2,10 +2,10 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { tournamentContract } from '@/lib/tournament-contract'
-
-// Import the wagmi configuration to initialize AppKit
-import '@/lib/wagmi'
-import { useAppKitAccount, useAppKitProvider, useDisconnect } from '@reown/appkit/react'
+import { useUser } from "@civic/auth-web3/react"
+import { useAutoConnect } from "@civic/auth-web3/wagmi"
+import { userHasWallet } from "@civic/auth-web3"
+import { useAccount, useBalance, useConnect } from 'wagmi'
 
 interface WalletContextType {
   // Wallet connection state
@@ -39,20 +39,34 @@ interface WalletProviderProps {
 }
 
 export function WalletProvider({ children }: WalletProviderProps) {
-  const { address, isConnected: appKitConnected } = useAppKitAccount()
-  const { walletProvider } = useAppKitProvider('eip155')
-  const { disconnect } = useDisconnect()
+  const userContext = useUser()
+  const { isConnected: wagmiConnected, address: wagmiAddress } = useAccount()
+  const { connect, connectors } = useConnect()
+  
+  // Auto-connect to Civic embedded wallet
+  useAutoConnect()
+  
+  // Get address from Civic Auth Web3 context
+  const address = userHasWallet(userContext) ? userContext.ethereum.address : undefined
+  const isConnected = !!userContext.user && !!address && wagmiConnected
+  
+  // Get balance using Wagmi
+  const { data: balanceData } = useBalance({ 
+    address: address as `0x${string}` | undefined 
+  })
   
   const [isConnecting, setIsConnecting] = useState(false)
   const [isContractReady, setIsContractReady] = useState(false)
-  const [userBalance, setUserBalance] = useState('0')
   const [networkInfo, setNetworkInfo] = useState<{ chainId: number; name: string } | null>(null)
   const [pendingStakes, setPendingStakes] = useState(new Map())
+  
+  // Calculate balance from Wagmi data
+  const userBalance = balanceData ? (Number(balanceData.value) / 1e18).toString() : '0'
 
   // Initialize contract when wallet connects
   useEffect(() => {
     const initializeContract = async () => {
-      if (appKitConnected && address) {
+      if (isConnected && address) {
         console.log('Wallet connected, initializing contract...')
         const success = await tournamentContract.connectWallet()
         setIsContractReady(success)
@@ -85,7 +99,6 @@ export function WalletProvider({ children }: WalletProviderProps) {
         }
       } else {
         setIsContractReady(false)
-        setUserBalance('0')
         setNetworkInfo(null)
         tournamentContract.removeEventListeners()
       }
@@ -94,15 +107,15 @@ export function WalletProvider({ children }: WalletProviderProps) {
     initializeContract()
     
     return () => {
-      if (!appKitConnected) {
+      if (!isConnected) {
         tournamentContract.removeEventListeners()
       }
     }
-  }, [appKitConnected, address])
+  }, [isConnected, address])
 
   // Periodic balance refresh when connected
   useEffect(() => {
-    if (appKitConnected && address && isContractReady) {
+    if (isConnected && address && isContractReady) {
       // Initial balance fetch
       refreshBalance()
       
@@ -113,26 +126,35 @@ export function WalletProvider({ children }: WalletProviderProps) {
       
       return () => clearInterval(balanceInterval)
     }
-  }, [appKitConnected, address, isContractReady])
+  }, [isConnected, address, isContractReady])
 
   // Handle disconnection state properly
   useEffect(() => {
-    if (!appKitConnected) {
-      // Clean up state when disconnected
+    if (!isConnected) {
+      // Clean up state when disconnected via Civic Auth
+      console.log('User disconnected via Civic Auth, cleaning up state')
       setIsContractReady(false)
-      setUserBalance('0')
       setNetworkInfo(null)
       setPendingStakes(new Map())
       tournamentContract.removeEventListeners()
     }
-  }, [appKitConnected])
+  }, [isConnected])
 
   const connectWallet = async (): Promise<boolean> => {
     setIsConnecting(true)
     try {
-      // AppKit handles the connection UI
-      // We just need to wait for the connection to be established
-      return appKitConnected
+      // If user doesn't have a wallet yet, create one
+      if (userContext.user && !userHasWallet(userContext)) {
+        console.log('Creating wallet for new user...')
+        await userContext.createWallet()
+      }
+      
+      // Connect to Civic embedded wallet using Wagmi
+      if (connectors.length > 0) {
+        connect({ connector: connectors[0] })
+      }
+      
+      return true
     } catch (error) {
       console.error('Failed to connect wallet:', error)
       return false
@@ -142,31 +164,14 @@ export function WalletProvider({ children }: WalletProviderProps) {
   }
 
   const disconnectWallet = async () => {
-    try {
-      // Actually disconnect from AppKit
-      await disconnect()
-      
-      // Clean up local state
-      tournamentContract.removeEventListeners()
-      setIsContractReady(false)
-      setUserBalance('0')
-      setNetworkInfo(null)
-      setPendingStakes(new Map())
-    } catch (error) {
-      console.error('Error disconnecting wallet:', error)
-    }
+    // Civic Auth handles disconnection via UserButton component
+    console.log('Use UserButton component for wallet disconnection')
   }
 
   const refreshBalance = async () => {
-    if (address && isContractReady) {
-      try {
-        const balance = await tournamentContract.getUserBalance(address)
-        setUserBalance(balance)
-      } catch (error) {
-        console.error('Error fetching balance:', error)
-        setUserBalance('0')
-      }
-    }
+    // Balance is now automatically managed by Wagmi's useBalance hook
+    // This function is kept for compatibility but no longer needs to do anything
+    console.log('Balance is automatically updated by Wagmi')
   }
 
   const createTournament = async (participant1: string, participant2: string) => {
@@ -249,7 +254,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
 
   const value: WalletContextType = {
     // Wallet connection state
-    isConnected: appKitConnected,
+    isConnected,
     address,
     isConnecting,
     
