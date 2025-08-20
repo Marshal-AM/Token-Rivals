@@ -170,20 +170,13 @@ STETH: "0x846ae1bdb6300b817cee5fdee2a6da192775030db5615b94a465f53bd40850b5"
 ### 🚀 GTM Execution Strategy
 
 #### Channel-Specific Approach
-1. **Crypto Native (40% of efforts)**
+1. **Crypto Native**
    - **Crypto Twitter**: 3 tweets daily - market analysis + tournament invites + winner celebrations
    - **Discord Communities**: Daily presence in 10+ servers, hosting bi-weekly tournaments
-   - **Crypto Podcasts**: Guest appearances on 2-3 podcasts monthly discussing gamification of trading
 
-2. **Gaming Communities (35% of efforts)**
-   - **Twitch Integration**: Partner with 10 gaming streamers for "learn crypto while gaming" content
+2. **Gaming Communities**
    - **Gaming Discord Servers**: Introduce tournaments as "skill-based betting" rather than crypto trading
    - **Mobile Gaming Forums**: Position as "fantasy sports meets cryptocurrency"
-
-3. **Educational (25% of efforts)**
-   - **YouTube Tutorials**: Weekly videos explaining trading concepts through gameplay
-   - **Blog Content**: SEO-optimized articles about crypto trading psychology and risk management
-   - **University Partnerships**: Guest lectures and workshops at business schools
 
 #### Conversion Funnel Optimization
 - **Landing Page A/B Tests**: Test "Learn Trading" vs "Win Crypto" vs "Beat Friends" messaging
