@@ -28,12 +28,6 @@ TokenRivals leverages **Civic Auth** to provide a frictionless Web3 onboarding e
 - **Secure Infrastructure**: Enterprise-grade security with familiar user experience
 - **Mobile-First Design**: Seamless mobile experience crucial for gaming adoption
 
-### 🔧 Technical Benefits
-- **Gasless Transactions**: Sponsored transactions for new users during initial gameplay
-- **Multi-Chain Support**: Easy expansion to other blockchain networks
-- **Identity Verification**: Optional KYC/AML compliance for regulated markets
-- **Social Recovery**: Account recovery through social connections and email
-
 This integration is **crucial** for achieving mainstream adoption - while most Web3 games require users to understand wallets, gas fees, and blockchain concepts before playing, TokenRivals allows anyone to start competing within seconds of discovering the platform.
 
 ## Get Started
