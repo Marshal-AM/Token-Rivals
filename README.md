@@ -172,7 +172,7 @@ STETH: "0x846ae1bdb6300b817cee5fdee2a6da192775030db5615b94a465f53bd40850b5"
 #### Channel-Specific Approach
 1. **Crypto Native**
    - **Crypto Twitter**: 3 tweets daily - market analysis + tournament invites + winner celebrations
-   - **Discord Communities**: Daily presence in 10+ servers, hosting bi-weekly tournaments
+   - **Discord Communities**: Daily presence in 10+ servers, hosting bi-weekly championship tournaments
 
 2. **Gaming Communities**
    - **Gaming Discord Servers**: Introduce tournaments as "skill-based betting" rather than crypto trading
